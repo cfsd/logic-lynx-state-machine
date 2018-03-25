@@ -16,7 +16,7 @@
  */
 
 #include "cluon-complete.hpp"
-#include "logic-steering.hpp"
+#include "logic-state-machine.hpp"
 
 #include <cmath>
 #include <fstream>

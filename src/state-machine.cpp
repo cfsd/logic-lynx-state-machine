@@ -18,7 +18,7 @@
 #include "cluon-complete.hpp"
 #include "opendlv-standard-message-set.hpp"
 
-#include "logic-steering.hpp"
+#include "logic-state-machine.hpp"
 
 #include <cstdint>
 #include <iostream>
@@ -48,7 +48,7 @@ int32_t main(int32_t argc, char **argv) {
 
         cluon::data::Envelope data;
         cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"])),
-            [&data, stateMachine](cluon::data::Envelope &&envelope){
+            [&data, &stateMachine](cluon::data::Envelope &&envelope){
                 stateMachine.callOnReceive(envelope);
                 // IMPORTANT INTRODUCE A MUTEX
             }
@@ -59,7 +59,7 @@ int32_t main(int32_t argc, char **argv) {
         const std::string PORT(commandlineArguments["port"]);
         
         //cluon::UDPReceiver UdpSocket(ADDR, std::stoi(PORT),
-        //    [&od4Session = od4, stateMachine, VERBOSE, senderStamp=ID](std::string &&d, std::string &&/*from*/, std::chrono::system_clock::time_point &&tp) noexcept {
+        //    [&od4Session = od4, &stateMachine, VERBOSE, senderStamp=ID](std::string &&d, std::string &&/*from*/, std::chrono::system_clock::time_point &&tp) noexcept {
             
         /*    cluon::data::TimeStamp sampleTime = cluon::time::convert(tp);
             std::time_t epoch_time = std::chrono::system_clock::to_time_t(tp);

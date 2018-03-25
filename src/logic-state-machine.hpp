@@ -64,7 +64,7 @@ class StateMachine {
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinHeartbeat = 27;
-    const uint16_t m_gpioPinHeartbeat = 27;
+    //const uint16_t m_gpioPinHeartbeat = 27;
 
     const uint16_t m_pwmPinAssiBlue = 0;
     const uint16_t m_pwmPinAssiRed = 20;
