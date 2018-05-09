@@ -25,6 +25,15 @@
 #include <vector>
 #include <utility>
 
+enum asState {
+    AS_OFF,
+    AS_READY, 
+    AS_DRIVING, 
+    AS_FINISHED, 
+    EBS_TRIGGERED
+ };
+
+
 class StateMachine {
    private:
     //StateMachine(const StateMachine &) = delete;
@@ -33,21 +42,39 @@ class StateMachine {
     //StateMachine &operator=(StateMachine &&) = delete;
 
    public:
-    StateMachine(bool verbose, uint32_t id);
+    StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm);
     ~StateMachine();
 
    public:
     float decode(const std::string &data) noexcept;
-    void callOnReceive(cluon::data::Envelope data);
-    void body(cluon::OD4Session &od4);
+    void body();
+    uint16_t getGpioPinEbsOk();
+    uint16_t getGpioPinAsms();
+    uint16_t getAnalogPinEbsLine();
+    uint16_t getAnalogPinServiceTank();
+    uint16_t getAnalogPinEbsActuator();
+    uint16_t getAnalogPinPressureReg();
+    uint32_t getSenderStampOffsetGpio();
+    uint32_t getSenderStampOffsetAnalog();
+    void setPressureEbsAct(float pos);
+    void setPressureEbsLine(float pos);
+    void setPressureServiceTank(float pos);
+    void setPressureServiceReg(float pos);
+    void setEbsOk(bool state);
+    void setAsms(bool state);
+    bool getInitialised();
 
    private:
-    bool controlPosition(cluon::OD4Session &od4, float setPoint);
-    void findRack(cluon::OD4Session &od4);
+    void stateMachine();
+    bool setAssi(asState assi);
     void setUp();
     void tearDown();
     
-
+    
+    cluon::OD4Session &m_od4;
+    cluon::OD4Session &m_od4Gpio;
+    cluon::OD4Session &m_od4Analog;
+    cluon::OD4Session &m_od4Pwm;
     bool m_debug;
     uint32_t m_bbbId;
     uint32_t m_senderStampOffsetGpio;
@@ -58,34 +85,40 @@ class StateMachine {
     float m_pressureEbsLine;
     float m_pressureServiceTank;
     float m_pressureServiceReg;
-    bool m_heartbeat;
+    bool m_ebsOk;
     bool m_asms;
-
+    bool m_heartbeat;
+    bool m_ebsSpeaker;
+    bool m_compressor;
+    bool m_ebsRelief;
+    bool m_finished;
+    bool m_shutdown;
+    asState m_currentState;
+    bool m_flash2Hz; 
+    long m_nextFlashTime;
+    int m_findRackSeqNo;
+    bool m_serviceBrakeOk;
+    bool m_ebsPressureOk;
 
     const uint16_t m_gpioPinAsms = 115;
+    const uint16_t m_gpioPinEbsOk = 49;
+
     const uint16_t m_gpioPinHeartbeat = 27;
-    //const uint16_t m_gpioPinHeartbeat = 27;
+    const uint16_t m_gpioPinEbsSpeaker = 44;
+    const uint16_t m_gpioPinCompressor = 45;
+    const uint16_t m_gpioPinEbsRelief = 61;
+    const uint16_t m_gpioPinFinished = 66;
+    const uint16_t m_gpioPinShutdown = 67;
 
     const uint16_t m_pwmPinAssiBlue = 0;
     const uint16_t m_pwmPinAssiRed = 20;
     const uint16_t m_pwmPinAssiGreen = 21;
+ 
+    const uint16_t m_analogPinEbsLine = 1;
+    const uint16_t m_analogPinServiceTank = 2;
+    const uint16_t m_analogPinEbsActuator = 3;
+    const uint16_t m_analogPinPressureReg = 5;
 
-
-
-    const uint16_t m_analogPinPressureEbsAct = 3;
-    const uint16_t m_analogPinPressureEbsLine = 1;
-    const uint16_t m_analogPinPressureServiceTank = 2;
-    const uint16_t m_analogPinPressureServiceReg = 5;
-
-    const double m_analogConvPressureEbsAct = 1;
-    const double m_analogConvPressureEbsLine = 1;
-    const double m_analogConvPressureServiceTank = 1;
-    const double m_analogConvPressureServiceReg = 1;
-
-    const double m_analogOffsetPressureEbsAct = 0;
-    const double m_analogOffsetPressureEbsLine = 0;
-    const double m_analogOffsetPressureServiceTank = 0;
-    const double m_analogOffsetPressureServiceReg = 0;    
 };
 
 #endif

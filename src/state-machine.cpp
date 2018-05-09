@@ -32,57 +32,80 @@
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{0};
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-    if ((0 == commandlineArguments.count("port")) || (0 == commandlineArguments.count("cid"))) {
-        std::cerr << argv[0] << " testing unit and publishes it to a running OpenDaVINCI session using the OpenDLV Standard Message Set." << std::endl;
-        std::cerr << "Usage:   " << argv[0] << " --port=<udp port>--cid=<OpenDaVINCI session> [--id=<Identifier in case of multiple beaglebone units>] [--verbose]" << std::endl;
-        std::cerr << "Example: " << argv[0] << " --port=8885 --cid=111 --id=1 --verbose=1 --freq=30" << std::endl;
+    if ((0 == commandlineArguments.count("freq")) || (0 == commandlineArguments.count("cid"))) {
+        std::cerr << argv[0] << "Module running state-machine for Lynx" << std::endl;
+        std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> [--id=<Identifier in case of multiple beaglebone units>] [--verbose]" << std::endl;
+        std::cerr << "Example: " << argv[0] << " --cid=111 --cidgpio=220 --cidanalog=221 --cidpwm=222 --id=1 --verbose=1 --freq=30" << std::endl;
         retCode = 1;
     } else {
         const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
-        const double FREQ{static_cast<double>(std::stof(commandlineArguments["freq"]))};
+        const float FREQ{std::stof(commandlineArguments["freq"])};
         std::cout << "Micro-Service ID:" << ID << std::endl;
 
         // Interface to a running OpenDaVINCI session.
-        StateMachine stateMachine(VERBOSE, ID);
-
-        cluon::data::Envelope data;
-        cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"])),
-            [&data, &stateMachine](cluon::data::Envelope &&envelope){
-                stateMachine.callOnReceive(envelope);
-                // IMPORTANT INTRODUCE A MUTEX
-            }
-        };
-
-        // Interface to OxTS.
-        const std::string ADDR("0.0.0.0");
-        const std::string PORT(commandlineArguments["port"]);
         
-        //cluon::UDPReceiver UdpSocket(ADDR, std::stoi(PORT),
-        //    [&od4Session = od4, &stateMachine, VERBOSE, senderStamp=ID](std::string &&d, std::string &&/*from*/, std::chrono::system_clock::time_point &&tp) noexcept {
-            
-        /*    cluon::data::TimeStamp sampleTime = cluon::time::convert(tp);
-            std::time_t epoch_time = std::chrono::system_clock::to_time_t(tp);
-            std::cout << "[UDP] Time: " << std::ctime(&epoch_time) << std::endl;
-            float groundSteer = stateMachine.decode(d);
 
-            opendlv::proxy::GroundSteeringRequest msg;
-            msg.groundSteering(groundSteer);
-            od4Session.send(msg, sampleTime, senderStamp);
-	    std::cout << "[UDP] Message sent: " << groundSteer << std::endl;
-        });*/
+        cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
+        cluon::OD4Session od4Gpio{static_cast<uint16_t>(std::stoi(commandlineArguments["cidgpio"]))};
+        cluon::OD4Session od4Analog{static_cast<uint16_t>(std::stoi(commandlineArguments["cidanalog"]))};
+        cluon::OD4Session od4Pwm{static_cast<uint16_t>(std::stoi(commandlineArguments["cidpwm"]))};
 
-        // Just sleep as this microservice is data driven.
+        StateMachine stateMachine(VERBOSE, ID, od4, od4Gpio, od4Analog, od4Pwm);
+
+        auto onPressureReading{[&stateMachine, &VERBOSE](cluon::data::Envelope &&envelope)
+            {
+                if (!stateMachine.getInitialised()){
+                    return;
+                }
+                uint16_t channel = envelope.senderStamp()-stateMachine.getSenderStampOffsetAnalog();
+                opendlv::proxy::PressureReading analogInput = cluon::extractMessage<opendlv::proxy::PressureReading>(std::move(envelope));
+
+                if (channel == stateMachine.getAnalogPinEbsActuator()){
+                    stateMachine.setPressureEbsAct(analogInput.pressure());
+                    if(VERBOSE)
+                        std::cout << "[LOGIC-ASS-PRESSURE-EBS-ACT] Pressure reading:" << analogInput.pressure() << std::endl;
+                }else if (channel == stateMachine.getAnalogPinEbsLine()){
+                    stateMachine.setPressureEbsLine(analogInput.pressure());
+                    if(VERBOSE)
+                        std::cout << "[LOGIC-ASS-PRESSURE-EBS-LINE] Pressure reading:" << analogInput.pressure() << std::endl;
+                }else if (channel == stateMachine.getAnalogPinServiceTank()){
+                    stateMachine.setPressureServiceTank(analogInput.pressure());
+                    if(VERBOSE)
+                        std::cout << "[LOGIC-ASS-PRESSURE-SERVICE-TANK] Pressure reading:" << analogInput.pressure() << std::endl;
+                }else if (channel == stateMachine.getAnalogPinPressureReg()){
+                    stateMachine.setPressureServiceReg(analogInput.pressure());
+                    if(VERBOSE)
+                        std::cout << "[LOGIC-ASS-PRESSURE-SERVICE-REGULATOR] Pressure reading:" << analogInput.pressure() << std::endl;
+                }
+            }};
+            od4Analog.dataTrigger(opendlv::proxy::PressureReading::ID(), onPressureReading);
+
+        auto onSwitchStateReading{[&stateMachine](cluon::data::Envelope &&envelope)
+            {
+                if (!stateMachine.getInitialised()){
+                    return;
+                }
+                uint16_t pin = envelope.senderStamp()-stateMachine.getSenderStampOffsetGpio();
+                if (pin == stateMachine.getGpioPinEbsOk()){
+                    opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
+                    stateMachine.setEbsOk(gpioState.state());
+                }else if (pin == stateMachine.getGpioPinAsms()){
+                    opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
+                    stateMachine.setAsms(gpioState.state());
+                }
+            }};
+            od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);
+
         using namespace std::literals::chrono_literals;
 
-        std::chrono::system_clock::time_point threadTime = std::chrono::system_clock::now();
-        while (od4.isRunning()) {
-            
-            std::this_thread::sleep_until(std::chrono::duration<double>(1/FREQ)+threadTime);
-            threadTime = std::chrono::system_clock::now();
+        auto atFrequency{[&od4, &stateMachine]() -> bool
+        {            
+            stateMachine.body();
+            return true;
+        }};
 
-            stateMachine.body(od4);
-        }
+        od4.timeTrigger(FREQ, atFrequency);
     }
     return retCode;
 }
