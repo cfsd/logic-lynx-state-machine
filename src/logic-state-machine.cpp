@@ -208,7 +208,7 @@ void StateMachine::stateMachine(){
     }
 
     if (m_debug){
-        std::cout << "Current state: " << m_currentState << std::endl;
+        std::cout << "[ASS-Machine] Current state: " << m_currentState << std::endl;
     }
 
 }
@@ -219,14 +219,18 @@ bool StateMachine::setAssi(asState assi){
     auto tp_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(tp);
     auto value = tp_ms.time_since_epoch();
     long timeMillis = value.count();
-    //std::cout << "Time" << timeMillis << std::endl;
 
     if (m_nextFlashTime <= timeMillis){
         m_flash2Hz  = !m_flash2Hz;
         m_nextFlashTime = timeMillis + 250;
     }
 
-    //std::cout << "2Hz" << m_flash2Hz << std::endl;
+    //
+
+    if (m_debug){
+        std::cout << "[ASSI-Time] Time: " << timeMillis << "ms \t2Hz toogle:" << m_flash2Hz << std::endl;
+    }
+
 
     switch(assi){
         case asState::AS_OFF:
@@ -262,7 +266,7 @@ bool StateMachine::setAssi(asState assi){
     }
 
     if (m_debug){
-        std::cout << "ASSI pwm (new, old): Red:\t(" << m_redDuty << ", " << m_redDutyOld << ")\t Green:\t(" << m_greenDuty << ", " << m_greenDutyOld << ")\t Blue:\t(" << m_blueDuty << ", " << m_blueDutyOld << ")" << std::endl;
+        std::cout << "[ASSI-Duty] ASSI pwm (new, old): Red:\t(" << m_redDuty << ", " << m_redDutyOld << ")\t Green:\t(" << m_greenDuty << ", " << m_greenDutyOld << ")\t Blue:\t(" << m_blueDuty << ", " << m_blueDutyOld << ")" << std::endl;
     }
 
 
