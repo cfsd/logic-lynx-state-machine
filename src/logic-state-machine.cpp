@@ -162,7 +162,7 @@ void StateMachine::stateMachine(){
     //} 
 
     m_ebsSpeaker = 0;
-    m_ebsRelief = m_asms;
+    m_ebsRelief = !m_asms;
     m_finished = 0;
     m_shutdown = 0;
 
@@ -206,6 +206,11 @@ void StateMachine::stateMachine(){
         default:
         break;
     }
+
+    if (m_debug){
+        std::cout << "Current state: " << m_currentState << std::endl;
+    }
+
 }
 
 bool StateMachine::setAssi(asState assi){
@@ -255,6 +260,11 @@ bool StateMachine::setAssi(asState assi){
             m_redDuty = 0;
         break;
     }
+
+    if (m_debug){
+        std::cout << "ASSI pwm (new, old): Red:\t(" << m_redDuty << ", " << m_redDutyOld << ")\t Green:\t(" << m_greenDuty << ", " << m_greenDutyOld << ")\t Blue:\t(" << m_blueDuty << ", " << m_blueDutyOld << ")" << std::endl;
+    }
+
 
     // Send pwm Requests
 
