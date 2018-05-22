@@ -218,7 +218,7 @@ bool StateMachine::setAssi(asState assi){
     std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
     auto tp_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(tp);
     auto value = tp_ms.time_since_epoch();
-    long timeMillis = value.count();
+    uint64_t timeMillis = value.count();
 
     if (m_nextFlashTime <= timeMillis){
         m_flash2Hz  = !m_flash2Hz;

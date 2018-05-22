@@ -106,7 +106,7 @@ class StateMachine {
     uint32_t m_redDutyOld;
     asState m_currentState;
     bool m_flash2Hz; 
-    long m_nextFlashTime;
+    uint64_t m_nextFlashTime;
     int m_findRackSeqNo;
     bool m_serviceBrakeOk;
     bool m_ebsPressureOk;
