@@ -93,6 +93,17 @@ class StateMachine {
     bool m_ebsRelief;
     bool m_finished;
     bool m_shutdown;
+    bool m_ebsSpeakerOld;
+    bool m_compressorOld;
+    bool m_ebsReliefOld;
+    bool m_finishedOld;
+    bool m_shutdownOld;
+    uint32_t m_blueDuty;
+    uint32_t m_greenDuty;
+    uint32_t m_redDuty;
+    uint32_t m_blueDutyOld;
+    uint32_t m_greenDutyOld;
+    uint32_t m_redDutyOld;
     asState m_currentState;
     bool m_flash2Hz; 
     long m_nextFlashTime;

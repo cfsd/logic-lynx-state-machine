@@ -57,6 +57,17 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_ebsRelief()
     , m_finished()
     , m_shutdown()
+    , m_ebsSpeakerOld()
+    , m_compressorOld()
+    , m_ebsReliefOld()
+    , m_finishedOld()
+    , m_shutdownOld()
+    , m_blueDuty()
+    , m_greenDuty()
+    , m_redDuty()
+    , m_blueDutyOld()
+    , m_greenDutyOld()
+    , m_redDutyOld()
     , m_currentState()
     , m_flash2Hz()
     , m_nextFlashTime()
@@ -83,7 +94,7 @@ void StateMachine::body()
 
     if (m_pressureEbsLine < 6 || m_pressureServiceTank < 6){
         m_compressor = 1;
-    }else{
+    }else if (m_pressureEbsLine > 8 || m_pressureServiceTank > 8){
         m_compressor = 0;
     }
 
@@ -104,29 +115,43 @@ void StateMachine::body()
 	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
 
     // m_ebsSpeaker Msg
-    senderStamp = m_gpioPinEbsSpeaker + m_senderStampOffsetGpio;
-    msgGpio.state(m_ebsSpeaker);
-	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+    if(m_ebsSpeaker != m_ebsSpeakerOld){
+        senderStamp = m_gpioPinEbsSpeaker + m_senderStampOffsetGpio;
+        msgGpio.state(m_ebsSpeaker);
+        m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+        m_ebsSpeakerOld = m_ebsSpeaker;
+    }
 
     // m_compressor Msg
-    senderStamp = m_gpioPinCompressor + m_senderStampOffsetGpio;
-    msgGpio.state(m_compressor);
-	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+    if(m_compressor != m_compressorOld){
+        senderStamp = m_gpioPinCompressor + m_senderStampOffsetGpio;
+        msgGpio.state(m_compressor);
+        m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+        m_compressorOld = m_compressor;
+    }
 
     // m_ebsRelief Msg
-    senderStamp = m_gpioPinEbsRelief + m_senderStampOffsetGpio;
-    msgGpio.state(m_ebsRelief);
-	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
-
+    if(m_ebsRelief != m_ebsReliefOld){
+        senderStamp = m_gpioPinEbsRelief + m_senderStampOffsetGpio;
+        msgGpio.state(m_ebsRelief);
+        m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+        m_ebsReliefOld = m_ebsRelief;
+    }
     // m_finished Msg
-    senderStamp = m_gpioPinFinished + m_senderStampOffsetGpio;
-    msgGpio.state(m_finished);
-	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+    if(m_finished != m_finishedOld){
+        senderStamp = m_gpioPinFinished + m_senderStampOffsetGpio;
+        msgGpio.state(m_finished);
+        m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+        m_finishedOld = m_finished;
+    }
 
     // m_shutdown Msg
-    senderStamp = m_gpioPinShutdown + m_senderStampOffsetGpio;
-    msgGpio.state(m_shutdown);
-	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+    if(m_shutdown != m_shutdownOld){
+        senderStamp = m_gpioPinShutdown + m_senderStampOffsetGpio;
+        msgGpio.state(m_shutdown);
+        m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+        m_shutdownOld = m_shutdown;
+    }
 
 }
 
@@ -137,7 +162,7 @@ void StateMachine::stateMachine(){
     //} 
 
     m_ebsSpeaker = 0;
-    m_ebsRelief = 1;
+    m_ebsRelief = m_asms;
     m_finished = 0;
     m_shutdown = 0;
 
@@ -185,9 +210,6 @@ void StateMachine::stateMachine(){
 
 bool StateMachine::setAssi(asState assi){
 
-    uint32_t redDuty = 0;
-    uint32_t greenDuty = 0;
-    uint32_t blueDuty = 0;
     std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
     auto tp_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(tp);
     auto value = tp_ms.time_since_epoch();
@@ -203,29 +225,34 @@ bool StateMachine::setAssi(asState assi){
 
     switch(assi){
         case asState::AS_OFF:
+            m_blueDuty = 0;
+            m_greenDuty = 0;
+            m_redDuty = 0;
         break;
         case asState::AS_READY:
-            blueDuty = 0;
-            greenDuty = 50000;
-            redDuty = 50000;
+            m_blueDuty = 0;
+            m_greenDuty = 50000;
+            m_redDuty = 50000;
             break;
         case asState::AS_DRIVING:
-            blueDuty = 0;
-            greenDuty = 50000*m_flash2Hz;
-            redDuty = 50000*m_flash2Hz;
+            m_blueDuty = 0;
+            m_greenDuty = 50000*m_flash2Hz;
+            m_redDuty = 50000*m_flash2Hz;
             break;
         case asState::AS_FINISHED:
-            blueDuty = 50000;
-            greenDuty = 0;
-            redDuty = 0;
+            m_blueDuty = 50000;
+            m_greenDuty = 0;
+            m_redDuty = 0;
             break;
         case asState::EBS_TRIGGERED:
-            blueDuty = 50000*m_flash2Hz;
-            greenDuty = 0;
-            redDuty = 0;
+            m_blueDuty = 50000*m_flash2Hz;
+            m_greenDuty = 0;
+            m_redDuty = 0;
             break;
-
         default:
+            m_blueDuty = 0;
+            m_greenDuty = 0;
+            m_redDuty = 0;
         break;
     }
 
@@ -236,17 +263,24 @@ bool StateMachine::setAssi(asState assi){
     
     opendlv::proxy::PulseWidthModulationRequest msgPwm;
  
-    senderStamp = m_pwmPinAssiRed + m_senderStampOffsetPwm;
-    msgPwm.dutyCycleNs(redDuty);
-    m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
-
-    senderStamp = m_pwmPinAssiGreen + m_senderStampOffsetPwm;
-    msgPwm.dutyCycleNs(greenDuty);
-    m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
-
-    senderStamp = m_pwmPinAssiBlue + m_senderStampOffsetPwm;
-    msgPwm.dutyCycleNs(blueDuty);
-    m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+    if (m_redDuty != m_redDutyOld){
+        senderStamp = m_pwmPinAssiRed + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_redDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_redDutyOld = m_redDuty;
+    }
+    if (m_greenDuty != m_greenDutyOld){
+        senderStamp = m_pwmPinAssiGreen + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_greenDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_greenDutyOld = m_greenDuty;
+    }
+    if (m_blueDuty != m_blueDutyOld){
+        senderStamp = m_pwmPinAssiBlue + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_blueDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_blueDutyOld = m_blueDuty;
+    }
 
     return 0;
 
