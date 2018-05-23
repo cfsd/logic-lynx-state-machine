@@ -93,6 +93,9 @@ int32_t main(int32_t argc, char **argv) {
                 }else if (pin == stateMachine.getGpioPinAsms()){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
                     stateMachine.setAsms(gpioState.state());
+                }else if (pin == stateMachine.getGpioPinClampSensor()){
+                    opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
+                    stateMachine.setClampExtended(gpioState.state());
                 }
             }};
             od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);

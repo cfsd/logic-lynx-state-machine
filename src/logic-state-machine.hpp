@@ -56,12 +56,14 @@ class StateMachine {
     uint16_t getAnalogPinPressureReg();
     uint32_t getSenderStampOffsetGpio();
     uint32_t getSenderStampOffsetAnalog();
+    uint16_t getGpioPinClampSensor();
     void setPressureEbsAct(float pos);
     void setPressureEbsLine(float pos);
     void setPressureServiceTank(float pos);
     void setPressureServiceReg(float pos);
     void setEbsOk(bool state);
     void setAsms(bool state);
+    void setClampExtended(bool state);
     bool getInitialised();
 
    private:
@@ -93,11 +95,13 @@ class StateMachine {
     bool m_ebsRelief;
     bool m_finished;
     bool m_shutdown;
+    bool m_serviceBrake;
     bool m_ebsSpeakerOld;
     bool m_compressorOld;
     bool m_ebsReliefOld;
     bool m_finishedOld;
     bool m_shutdownOld;
+    bool m_serviceBrakeOld;
     uint32_t m_blueDuty;
     uint32_t m_greenDuty;
     uint32_t m_redDuty;
@@ -110,9 +114,11 @@ class StateMachine {
     int m_findRackSeqNo;
     bool m_serviceBrakeOk;
     bool m_ebsPressureOk;
+    bool m_clampExtended;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;
+    const uint16_t m_gpioPinClampSensor = 112;
 
     const uint16_t m_gpioPinHeartbeat = 27;
     const uint16_t m_gpioPinEbsSpeaker = 44;
@@ -120,6 +126,7 @@ class StateMachine {
     const uint16_t m_gpioPinEbsRelief = 61;
     const uint16_t m_gpioPinFinished = 66;
     const uint16_t m_gpioPinShutdown = 67;
+    const uint16_t m_gpioPinServiceBrake = 69;
 
     const uint16_t m_pwmPinAssiBlue = 0;
     const uint16_t m_pwmPinAssiRed = 20;
@@ -129,6 +136,8 @@ class StateMachine {
     const uint16_t m_analogPinServiceTank = 2;
     const uint16_t m_analogPinEbsActuator = 3;
     const uint16_t m_analogPinPressureReg = 5;
+
+    const uint32_t m_senderStampCurrentState = 1401;
 
 };
 

@@ -57,11 +57,13 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_ebsRelief()
     , m_finished()
     , m_shutdown()
+    , m_serviceBrake()
     , m_ebsSpeakerOld()
     , m_compressorOld()
     , m_ebsReliefOld()
     , m_finishedOld()
     , m_shutdownOld()
+    , m_serviceBrakeOld()
     , m_blueDuty()
     , m_greenDuty()
     , m_redDuty()
@@ -74,6 +76,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_findRackSeqNo()
     , m_serviceBrakeOk()
     , m_ebsPressureOk()
+    , m_clampExtended()
 
 {
     m_currentState = asState::AS_OFF;
@@ -114,6 +117,7 @@ void StateMachine::body()
     msgGpio.state(m_heartbeat);
 	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
 
+
     // m_ebsSpeaker Msg
     if(m_ebsSpeaker != m_ebsSpeakerOld){
         senderStamp = m_gpioPinEbsSpeaker + m_senderStampOffsetGpio;
@@ -153,6 +157,21 @@ void StateMachine::body()
         m_shutdownOld = m_shutdown;
     }
 
+    // m_serviceBrake
+    if(m_serviceBrake != m_serviceBrakeOld){
+        senderStamp = m_gpioPinServiceBrake + m_senderStampOffsetGpio;
+        msgGpio.state(m_serviceBrake);
+        m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+        m_serviceBrakeOld = m_serviceBrake;
+    }
+
+
+    //Send Current state of state machine
+        
+    opendlv::proxy::SwitchStateReading msgGpioRead;
+    senderStamp = m_senderStampCurrentState;
+    msgGpioRead.state((uint16_t) m_currentState);
+    m_od4.send(msgGpioRead, sampleTime, senderStamp);
 }
 
 void StateMachine::stateMachine(){
@@ -168,7 +187,7 @@ void StateMachine::stateMachine(){
 
     switch(m_currentState){
         case asState::AS_OFF:
-            if (m_asms /*&& precharge done && steering initialization done && EBS OK && Mission selected && computer ON*/){
+            if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended/*&& precharge done && steering initialization done && EBS OK && Mission selected && computer ON*/){
                 m_currentState = asState::AS_READY;
             }
             break;
@@ -341,6 +360,10 @@ uint32_t StateMachine::getSenderStampOffsetAnalog(){
   return m_senderStampOffsetAnalog;
 }
 
+uint16_t StateMachine::getGpioPinClampSensor(){
+  return m_gpioPinClampSensor;
+}
+
 void StateMachine::setPressureEbsAct(float pos){
     m_pressureEbsAct = pos;
 }
@@ -359,6 +382,9 @@ void StateMachine::setEbsOk(bool state){
 }
 void StateMachine::setAsms(bool state){
     m_asms = state;
+}
+void StateMachine::setClampExtended(bool state){
+    m_clampExtended = state;
 }
 
 bool StateMachine::getInitialised(){
