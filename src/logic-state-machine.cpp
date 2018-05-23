@@ -94,6 +94,7 @@ void StateMachine::body()
     stateMachine();
     setAssi(m_currentState);
     m_heartbeat = !m_heartbeat;
+    m_serviceBrake = 1;
 
     if (m_pressureEbsLine < 5 || m_pressureServiceTank < 6){
         m_compressor = 1;
