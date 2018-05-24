@@ -48,6 +48,7 @@ int32_t main(int32_t argc, char **argv) {
 
         cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
         cluon::OD4Session od4Gpio{static_cast<uint16_t>(std::stoi(commandlineArguments["cidgpio"]))};
+        cluon::OD4Session od4Gpio2{static_cast<uint16_t>(std::stoi(commandlineArguments["cidgpio"]))};
         cluon::OD4Session od4Analog{static_cast<uint16_t>(std::stoi(commandlineArguments["cidanalog"]))};
         cluon::OD4Session od4Pwm{static_cast<uint16_t>(std::stoi(commandlineArguments["cidpwm"]))};
 
@@ -99,6 +100,32 @@ int32_t main(int32_t argc, char **argv) {
                 }
             }};
             od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);
+
+
+            auto heartbeatThread{[&stateMachine, &od4Gpio2]()
+            {
+                if (!stateMachine.getInitialised()){
+                    return;
+                }
+                using namespace std::literals::chrono_literals;
+                bool heatbeat = 0;
+                int16_t senderStamp = stateMachine.getSenderStampOffsetGpio() + 27;
+                std::chrono::system_clock::time_point threadTime = std::chrono::system_clock::now();
+                opendlv::proxy::SwitchStateRequest msgGpio;
+
+                while (true) {
+                    heatbeat = !heatbeat;
+                    std::this_thread::sleep_until(std::chrono::duration<double>(0.033)+threadTime);
+                    threadTime = std::chrono::system_clock::now();
+                    cluon::data::TimeStamp sampleTime = cluon::time::convert(threadTime);
+                    msgGpio.state(heatbeat);
+                    od4Gpio2.send(msgGpio, sampleTime, senderStamp);
+                }
+
+            }};
+            std::thread hbThread(heartbeatThread);
+
+
 
         using namespace std::literals::chrono_literals;
 

@@ -41,6 +41,9 @@
         "thread": "cpp",
         "tuple": "cpp",
         "type_traits": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "numeric": "cpp"
     }
 }

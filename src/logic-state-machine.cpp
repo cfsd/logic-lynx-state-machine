@@ -114,9 +114,9 @@ void StateMachine::body()
     opendlv::proxy::SwitchStateRequest msgGpio;
 
     // Heartbeat Msg
-    senderStamp = m_gpioPinHeartbeat + m_senderStampOffsetGpio;
-    msgGpio.state(m_heartbeat);
-	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+    //senderStamp = m_gpioPinHeartbeat + m_senderStampOffsetGpio;
+    //msgGpio.state(m_heartbeat);
+	//m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
 
 
     // m_ebsSpeaker Msg
