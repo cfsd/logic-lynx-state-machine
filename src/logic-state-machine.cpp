@@ -238,6 +238,7 @@ void StateMachine::stateMachine(){
         case asState::EBS_TRIGGERED:
             m_ebsRelief = 0;
             m_ebsSpeaker = ((m_ebsTriggeredTime+5000) >= timeMillis);
+            m_finished = 0;
             m_shutdown = 1;
             if(!m_asms && (((m_ebsTriggeredTime+5000) <= timeMillis) || (m_prevState != asState::AS_DRIVING))/*&& spd = 0*/){
                 m_prevState = asState::EBS_TRIGGERED;
