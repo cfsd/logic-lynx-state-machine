@@ -64,6 +64,8 @@ class StateMachine {
     void setEbsOk(bool state);
     void setAsms(bool state);
     void setClampExtended(bool state);
+    void setFinishSignal(bool state);
+    void setGoSignal(bool state);
     bool getInitialised();
 
    private:
@@ -109,12 +111,16 @@ class StateMachine {
     uint32_t m_greenDutyOld;
     uint32_t m_redDutyOld;
     asState m_currentState;
+    asState m_prevState;
     bool m_flash2Hz; 
     uint64_t m_nextFlashTime;
     int m_findRackSeqNo;
     bool m_serviceBrakeOk;
     bool m_ebsPressureOk;
     bool m_clampExtended;
+    uint64_t m_ebsTriggeredTime;
+    bool m_goSignal;
+    bool m_finishSignal;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

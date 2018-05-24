@@ -82,7 +82,7 @@ int32_t main(int32_t argc, char **argv) {
             }};
             od4Analog.dataTrigger(opendlv::proxy::PressureReading::ID(), onPressureReading);
 
-        auto onSwitchStateReading{[&stateMachine](cluon::data::Envelope &&envelope)
+        auto onSwitchStateReadingGpio{[&stateMachine](cluon::data::Envelope &&envelope)
             {
                 if (!stateMachine.getInitialised()){
                     return;
@@ -99,8 +99,23 @@ int32_t main(int32_t argc, char **argv) {
                     stateMachine.setClampExtended(gpioState.state());
                 }
             }};
-            od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);
+            od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReadingGpio);
 
+        auto onSwitchStateReading{[&stateMachine](cluon::data::Envelope &&envelope)
+            {
+                if (!stateMachine.getInitialised()){
+                    return;
+                }
+                uint16_t pin = envelope.senderStamp();
+                if (pin == 1402){
+                    opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
+                    stateMachine.setGoSignal(gpioState.state());
+                }else if (pin == 1403){
+                    opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
+                    stateMachine.setFinishSignal(gpioState.state());
+                }
+            }};
+            od4.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);
 
             auto heartbeatThread{[&stateMachine, &od4Gpio2]()
             {

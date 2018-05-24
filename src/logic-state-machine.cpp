@@ -71,12 +71,16 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_greenDutyOld()
     , m_redDutyOld()
     , m_currentState()
+    , m_prevState()
     , m_flash2Hz()
     , m_nextFlashTime()
     , m_findRackSeqNo()
     , m_serviceBrakeOk()
     , m_ebsPressureOk()
     , m_clampExtended()
+    , m_ebsTriggeredTime()
+    , m_goSignal()
+    , m_finishSignal()
 
 {
     m_currentState = asState::AS_OFF;
@@ -181,29 +185,45 @@ void StateMachine::stateMachine(){
     //    m_currentState = asState::EBS_TRIGGERED;
     //} 
 
+    std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
+    auto tp_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(tp);
+    auto value = tp_ms.time_since_epoch();
+    uint64_t timeMillis = value.count();
+
     m_ebsSpeaker = 0;
     m_ebsRelief = !m_asms;
-    m_finished = 0;
+    m_finished = 1; // Change this!!!! (Later...)
     m_shutdown = 0;
+    if(!m_ebsOk && m_currentState != asState::EBS_TRIGGERED){
+        m_ebsTriggeredTime = timeMillis;
+        m_prevState = m_currentState;
+        m_currentState = asState::EBS_TRIGGERED;
+    }
 
     switch(m_currentState){
         case asState::AS_OFF:
             if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended/*&& precharge done && steering initialization done && EBS OK && Mission selected && computer ON*/){
+                m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
             }
             break;
         case asState::AS_READY:
-            if (true /*&& RES GO signal*/){
+            if (m_goSignal /*&& RES GO signal*/){
+                m_prevState = asState::AS_READY;
                 m_currentState = asState::AS_DRIVING;
             }else if(!m_asms){
+                m_prevState = asState::AS_READY;
                 m_currentState = asState::AS_OFF;
             }
             break;
         case asState::AS_DRIVING:
             m_ebsRelief = 0;
-            if (false /*&& Mission complete and spd = 0*/){
+            if (m_finishSignal /*&& Mission complete and spd = 0*/){
+                m_prevState = asState::AS_DRIVING;
                 m_currentState = asState::AS_FINISHED;
             }else if(!m_asms){
+                m_ebsTriggeredTime = timeMillis;
+                m_prevState = asState::AS_DRIVING;
                 m_currentState = asState::EBS_TRIGGERED;
             }
             break;
@@ -211,14 +231,16 @@ void StateMachine::stateMachine(){
             m_finished = 1;
             m_shutdown = 1;
             if(!m_asms){
+                m_prevState = asState::AS_FINISHED;
                 m_currentState = asState::AS_OFF;
             }
             break;
         case asState::EBS_TRIGGERED:
             m_ebsRelief = 0;
-            m_ebsSpeaker = 1;
+            m_ebsSpeaker = ((m_ebsTriggeredTime+5000) >= timeMillis);
             m_shutdown = 1;
-            if(!m_asms /*&& spd = 0*/){
+            if(!m_asms && (((m_ebsTriggeredTime+5000) <= timeMillis) || (m_prevState != asState::AS_DRIVING))/*&& spd = 0*/){
+                m_prevState = asState::EBS_TRIGGERED;
                 m_currentState = asState::AS_OFF;
             }
             break;
@@ -387,7 +409,14 @@ void StateMachine::setAsms(bool state){
 void StateMachine::setClampExtended(bool state){
     m_clampExtended = state;
 }
+void StateMachine::setFinishSignal(bool state){
+    m_finishSignal = state;
+}
+void StateMachine::setGoSignal(bool state){
+    m_goSignal = state;
+}
 
 bool StateMachine::getInitialised(){
   return m_initialised;
 }
+
