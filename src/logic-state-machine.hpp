@@ -121,6 +121,7 @@ class StateMachine {
     uint64_t m_ebsTriggeredTime;
     bool m_goSignal;
     bool m_finishSignal;
+    bool m_first;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

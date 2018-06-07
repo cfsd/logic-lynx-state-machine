@@ -81,6 +81,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_ebsTriggeredTime()
     , m_goSignal()
     , m_finishSignal()
+    , m_first(1)
 
 {
     m_currentState = asState::AS_OFF;
@@ -94,7 +95,13 @@ StateMachine::~StateMachine()
 
 void StateMachine::body()
 {
-
+    if(m_first){
+          sleep(1);
+          m_first = false;
+    }
+    if (m_debug){
+        std::cout << "[ASS-Machine] Current inputs: m_asms: " << m_asms << "\t m_ebsOk: " << m_ebsOk << std::endl;
+    }
     stateMachine();
     setAssi(m_currentState);
     m_heartbeat = !m_heartbeat;
@@ -122,7 +129,9 @@ void StateMachine::body()
     //msgGpio.state(m_heartbeat);
 	//m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
 
-
+    if (m_debug){
+        std::cout << "[ASS-Machine] Current outputs: m_finished: " << m_finished << "\t m_shutdown: " << m_shutdown << std::endl;
+    }
     // m_ebsSpeaker Msg
     if(m_ebsSpeaker != m_ebsSpeakerOld){
         senderStamp = m_gpioPinEbsSpeaker + m_senderStampOffsetGpio;
@@ -194,10 +203,12 @@ void StateMachine::stateMachine(){
     m_ebsRelief = !m_asms;
     m_finished = 1; // Change this!!!! (Later...)
     m_shutdown = 0;
-    if(!m_ebsOk && m_currentState != asState::EBS_TRIGGERED){
+    if(!m_ebsOk && m_currentState != asState::EBS_TRIGGERED && m_currentState != asState::AS_OFF){
         m_ebsTriggeredTime = timeMillis;
         m_prevState = m_currentState;
         m_currentState = asState::EBS_TRIGGERED;
+        std::cout << "[ASS-Machine] Current state: " << m_currentState << std::endl;
+        
     }
 
     switch(m_currentState){
