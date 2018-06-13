@@ -213,7 +213,7 @@ void StateMachine::stateMachine(){
 
     switch(m_currentState){
         case asState::AS_OFF:
-            if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended/*&& precharge done && steering initialization done && EBS OK && Mission selected && computer ON*/){
+            if (m_asms && m_serviceBrakeOk && m_ebsPressureOk/* && m_clampExtended && precharge done && steering initialization done && EBS OK && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
             }
