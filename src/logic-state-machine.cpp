@@ -64,6 +64,9 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_finishedOld()
     , m_shutdownOld()
     , m_serviceBrakeOld()
+    , m_brakeDuty()
+    , m_brakeDutyOld()
+    , m_brakeDutyRequest()
     , m_blueDuty()
     , m_greenDuty()
     , m_redDuty()
@@ -82,6 +85,10 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_goSignal()
     , m_finishSignal()
     , m_first(1)
+    , m_torqueReqLeft()
+    , m_torqueReqRight()
+    , m_torqueReqLeftCan()
+    , m_torqueReqRightCan()
 
 {
     m_currentState = asState::AS_OFF;
@@ -179,13 +186,49 @@ void StateMachine::body()
         m_serviceBrakeOld = m_serviceBrake;
     }
 
+    // Send pwm Requests
+    opendlv::proxy::PulseWidthModulationRequest msgPwm;
+ 
+    if (m_redDuty != m_redDutyOld){
+        senderStamp = m_pwmPinAssiRed + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_redDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_redDutyOld = m_redDuty;
+    }
+    if (m_greenDuty != m_greenDutyOld){
+        senderStamp = m_pwmPinAssiGreen + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_greenDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_greenDutyOld = m_greenDuty;
+    }
+    if (m_blueDuty != m_blueDutyOld){
+        senderStamp = m_pwmPinAssiBlue + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_blueDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_blueDutyOld = m_blueDuty;
+    }
+    if (m_brakeDuty != m_brakeDutyOld){
+        senderStamp = m_pwmPinBrake + m_senderStampOffsetPwm;
+        msgPwm.dutyCycleNs(m_brakeDuty);
+        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
+        m_brakeDutyOld = m_brakeDuty;
+    }
 
     //Send Current state of state machine
-        
     opendlv::proxy::SwitchStateReading msgGpioRead;
     senderStamp = m_senderStampCurrentState;
     msgGpioRead.state((uint16_t) m_currentState);
     m_od4.send(msgGpioRead, sampleTime, senderStamp);
+
+    opendlv::proxy::TorqueRequest msgTorqueReq;
+
+    senderStamp = 1500;
+    msgTorqueReq.torque(m_torqueReqLeftCan);
+    m_od4.send(msgTorqueReq, sampleTime, senderStamp);
+
+    senderStamp = 1501;
+    msgTorqueReq.torque(m_torqueReqRightCan);
+    m_od4.send(msgTorqueReq, sampleTime, senderStamp);
 }
 
 void StateMachine::stateMachine(){
@@ -203,6 +246,8 @@ void StateMachine::stateMachine(){
     m_ebsRelief = !m_asms;
     m_finished = 1; // Change this!!!! (Later...)
     m_shutdown = 0;
+    m_torqueReqLeftCan = 0;
+    m_torqueReqRightCan = 0;
     if(!m_ebsOk && m_currentState != asState::EBS_TRIGGERED && m_currentState != asState::AS_OFF){
         m_ebsTriggeredTime = timeMillis;
         m_prevState = m_currentState;
@@ -219,6 +264,7 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::AS_READY:
+            m_brakeDuty = 20000;
             if (m_goSignal /*&& RES GO signal*/){
                 m_prevState = asState::AS_READY;
                 m_currentState = asState::AS_DRIVING;
@@ -228,6 +274,10 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::AS_DRIVING:
+            m_brakeDuty = m_brakeDutyRequest;
+            m_torqueReqLeftCan = m_torqueReqLeft;
+            m_torqueReqRightCan = m_torqueReqRight;
+
             m_ebsRelief = 0;
             if (m_finishSignal /*&& Mission complete and spd = 0*/){
                 m_prevState = asState::AS_DRIVING;
@@ -239,6 +289,7 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::AS_FINISHED:
+            m_brakeDuty = 20000;
             m_finished = 1;
             m_shutdown = 1;
             if(!m_asms){
@@ -247,6 +298,7 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::EBS_TRIGGERED:
+            m_brakeDuty = 50000;
             m_ebsRelief = 0;
             m_ebsSpeaker = ((m_ebsTriggeredTime+5000) >= timeMillis);
             m_finished = 0;
@@ -321,33 +373,6 @@ bool StateMachine::setAssi(asState assi){
 
     if (m_debug){
         std::cout << "[ASSI-Duty] ASSI pwm (new, old): Red:\t(" << m_redDuty << ", " << m_redDutyOld << ")\t Green:\t(" << m_greenDuty << ", " << m_greenDutyOld << ")\t Blue:\t(" << m_blueDuty << ", " << m_blueDutyOld << ")" << std::endl;
-    }
-
-
-    // Send pwm Requests
-
-    cluon::data::TimeStamp sampleTime = cluon::time::convert(tp);
-    int16_t senderStamp = 0;
-    
-    opendlv::proxy::PulseWidthModulationRequest msgPwm;
- 
-    if (m_redDuty != m_redDutyOld){
-        senderStamp = m_pwmPinAssiRed + m_senderStampOffsetPwm;
-        msgPwm.dutyCycleNs(m_redDuty);
-        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
-        m_redDutyOld = m_redDuty;
-    }
-    if (m_greenDuty != m_greenDutyOld){
-        senderStamp = m_pwmPinAssiGreen + m_senderStampOffsetPwm;
-        msgPwm.dutyCycleNs(m_greenDuty);
-        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
-        m_greenDutyOld = m_greenDuty;
-    }
-    if (m_blueDuty != m_blueDutyOld){
-        senderStamp = m_pwmPinAssiBlue + m_senderStampOffsetPwm;
-        msgPwm.dutyCycleNs(m_blueDuty);
-        m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
-        m_blueDutyOld = m_blueDuty;
     }
 
     return 0;
@@ -426,6 +451,15 @@ void StateMachine::setFinishSignal(bool state){
 }
 void StateMachine::setGoSignal(bool state){
     m_goSignal = state;
+}
+void StateMachine::setDutyCycleBrake(uint32_t duty){
+    m_brakeDutyRequest = duty;
+}
+void StateMachine::setTorqueReqLeft(int16_t torque){
+    m_torqueReqLeft = torque;
+}
+void StateMachine::setTorqueReqRight(int16_t torque){
+    m_torqueReqRight = torque;
 }
 
 bool StateMachine::getInitialised(){

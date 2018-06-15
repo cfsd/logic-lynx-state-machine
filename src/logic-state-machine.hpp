@@ -66,6 +66,9 @@ class StateMachine {
     void setClampExtended(bool state);
     void setFinishSignal(bool state);
     void setGoSignal(bool state);
+    void setDutyCycleBrake(uint32_t duty);
+    void setTorqueReqLeft(int16_t torque);
+    void setTorqueReqRight(int16_t torque);
     bool getInitialised();
 
    private:
@@ -104,6 +107,9 @@ class StateMachine {
     bool m_finishedOld;
     bool m_shutdownOld;
     bool m_serviceBrakeOld;
+    uint32_t m_brakeDuty;
+    uint32_t m_brakeDutyOld;
+    uint32_t m_brakeDutyRequest;
     uint32_t m_blueDuty;
     uint32_t m_greenDuty;
     uint32_t m_redDuty;
@@ -122,6 +128,10 @@ class StateMachine {
     bool m_goSignal;
     bool m_finishSignal;
     bool m_first;
+    int16_t m_torqueReqLeft;
+    int16_t m_torqueReqRight;
+    int16_t m_torqueReqLeftCan;
+    int16_t m_torqueReqRightCan;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;
@@ -138,6 +148,7 @@ class StateMachine {
     const uint16_t m_pwmPinAssiBlue = 0;
     const uint16_t m_pwmPinAssiRed = 20;
     const uint16_t m_pwmPinAssiGreen = 21;
+    const uint16_t m_pwmPinBrake = 41;
  
     const uint16_t m_analogPinEbsLine = 1;
     const uint16_t m_analogPinServiceTank = 2;
@@ -145,6 +156,7 @@ class StateMachine {
     const uint16_t m_analogPinPressureReg = 5;
 
     const uint32_t m_senderStampCurrentState = 1401;
+    const uint32_t m_senderStampRTD = 1404;
 
 };
 

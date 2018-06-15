@@ -117,6 +117,35 @@ int32_t main(int32_t argc, char **argv) {
             }};
             od4.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);
 
+        auto onPulseWidthModulationRequest{[&stateMachine, &VERBOSE](cluon::data::Envelope &&envelope)
+        {   
+            if (!stateMachine.getInitialised()){
+                return;
+            }
+            if (envelope.senderStamp() == 1341){
+            auto const pwmState = cluon::extractMessage<opendlv::proxy::PulseWidthModulationRequest>(std::move(envelope));
+            stateMachine.setDutyCycleBrake(pwmState.dutyCycleNs());
+            }
+        }};
+        od4.dataTrigger(opendlv::proxy::PulseWidthModulationRequest::ID(), onPulseWidthModulationRequest);
+
+        auto onTorqueRequest{[&stateMachine, &VERBOSE](cluon::data::Envelope &&envelope)
+        {   
+            if (!stateMachine.getInitialised()){
+                return;
+            }
+            if (envelope.senderStamp() == 1502){
+            auto const torqueReq = cluon::extractMessage<opendlv::proxy::TorqueRequest>(std::move(envelope));
+            stateMachine.setTorqueReqLeft((int)round(torqueReq.torque()));
+            }else if (envelope.senderStamp() == 1503){
+            auto const torqueReq = cluon::extractMessage<opendlv::proxy::TorqueRequest>(std::move(envelope));
+            stateMachine.setTorqueReqRight((int)round(torqueReq.torque()));
+            }
+        }};
+        od4.dataTrigger(opendlv::proxy::TorqueRequest::ID(), onTorqueRequest);
+
+
+
             auto heartbeatThread{[&stateMachine, &od4Gpio2]()
             {
                 if (!stateMachine.getInitialised()){
