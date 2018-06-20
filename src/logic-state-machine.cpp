@@ -35,7 +35,9 @@ float StateMachine::decode(const std::string &data) noexcept {
 }
 
 StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm)
-    : m_od4(od4)
+    : m_lastUpdateAnalog()
+    , m_lastUpdateGpio()
+    , m_od4(od4)
     , m_od4Gpio(od4Gpio)
     , m_od4Analog(od4Analog)
     , m_od4Pwm(od4Pwm)
@@ -89,6 +91,8 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_torqueReqRight()
     , m_torqueReqLeftCan()
     , m_torqueReqRightCan()
+    , m_rtd()
+    , m_modulesRunning()
 
 {
     m_currentState = asState::AS_OFF;
@@ -102,10 +106,20 @@ StateMachine::~StateMachine()
 
 void StateMachine::body()
 {
-    if(m_first){
-          sleep(1);
-          m_first = false;
+    if(cluon::time::toMicroseconds(m_lastUpdateAnalog) == 0 || cluon::time::toMicroseconds(m_lastUpdateGpio) == 0){
+        while(cluon::time::toMicroseconds(m_lastUpdateAnalog) == 0 || cluon::time::toMicroseconds(m_lastUpdateGpio) == 0){
+            sleep(1);
+        }
+        sleep(1);
+        m_modulesRunning = true;
+        m_first = false;
     }
+    int64_t threadTime = cluon::time::toMicroseconds(cluon::time::now());
+    if(((threadTime-cluon::time::toMicroseconds(m_lastUpdateAnalog)) > 500000) || ((threadTime-cluon::time::toMicroseconds(m_lastUpdateGpio)) > 1000000)){
+        m_modulesRunning = false;
+        std::cout << "[ASS-ERROR] Module have crashed. Last gpio update:" << (threadTime-cluon::time::toMicroseconds(m_lastUpdateGpio)) << "\t Last analog update: " << (threadTime-cluon::time::toMicroseconds(m_lastUpdateAnalog)) << std::endl;
+    }
+
     if (m_debug){
         std::cout << "[ASS-Machine] Current inputs: m_asms: " << m_asms << "\t m_ebsOk: " << m_ebsOk << std::endl;
     }
@@ -124,17 +138,16 @@ void StateMachine::body()
     m_ebsPressureOk = m_pressureEbsLine >= 6;
     
     // Sending std messages
-    std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
-    cluon::data::TimeStamp sampleTime = cluon::time::convert(tp);
+    cluon::data::TimeStamp sampleTime = cluon::time::now();
     int16_t senderStamp = 0;
 
     // GPIO Msg
     opendlv::proxy::SwitchStateRequest msgGpio;
 
-    // Heartbeat Msg
-    //senderStamp = m_gpioPinHeartbeat + m_senderStampOffsetGpio;
-    //msgGpio.state(m_heartbeat);
-	//m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
+    //Heartbeat Msg
+    senderStamp = m_gpioPinHeartbeat + m_senderStampOffsetGpio;
+    msgGpio.state(m_heartbeat);
+	m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
 
     if (m_debug){
         std::cout << "[ASS-Machine] Current outputs: m_finished: " << m_finished << "\t m_shutdown: " << m_shutdown << std::endl;
@@ -220,6 +233,10 @@ void StateMachine::body()
     msgGpioRead.state((uint16_t) m_currentState);
     m_od4.send(msgGpioRead, sampleTime, senderStamp);
 
+    senderStamp = 1404;
+    msgGpioRead.state((uint16_t) m_rtd);
+    m_od4.send(msgGpioRead, sampleTime, senderStamp);
+
     opendlv::proxy::TorqueRequest msgTorqueReq;
 
     senderStamp = 1500;
@@ -244,11 +261,12 @@ void StateMachine::stateMachine(){
 
     m_ebsSpeaker = 0;
     m_ebsRelief = !m_asms;
-    m_finished = 1; // Change this!!!! (Later...)
+    m_finished = 0;
     m_shutdown = 0;
     m_torqueReqLeftCan = 0;
     m_torqueReqRightCan = 0;
-    if(!m_ebsOk && m_currentState != asState::EBS_TRIGGERED && m_currentState != asState::AS_OFF){
+    m_rtd = 0;
+    if((!m_ebsOk || !m_modulesRunning) && m_currentState != asState::EBS_TRIGGERED && m_currentState != asState::AS_OFF){
         m_ebsTriggeredTime = timeMillis;
         m_prevState = m_currentState;
         m_currentState = asState::EBS_TRIGGERED;
@@ -258,7 +276,8 @@ void StateMachine::stateMachine(){
 
     switch(m_currentState){
         case asState::AS_OFF:
-            if (m_asms && m_serviceBrakeOk && m_ebsPressureOk/* && m_clampExtended && precharge done && steering initialization done && EBS OK && Mission selected && computer ON*/){
+            m_brakeDuty = 20000;
+	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
             }
@@ -277,6 +296,7 @@ void StateMachine::stateMachine(){
             m_brakeDuty = m_brakeDutyRequest;
             m_torqueReqLeftCan = m_torqueReqLeft;
             m_torqueReqRightCan = m_torqueReqRight;
+            m_rtd = 1;
 
             m_ebsRelief = 0;
             if (m_finishSignal /*&& Mission complete and spd = 0*/){
@@ -346,12 +366,12 @@ bool StateMachine::setAssi(asState assi){
         break;
         case asState::AS_READY:
             m_blueDuty = 0;
-            m_greenDuty = 50000;
+            m_greenDuty = 40000;
             m_redDuty = 50000;
             break;
         case asState::AS_DRIVING:
             m_blueDuty = 0;
-            m_greenDuty = 50000*m_flash2Hz;
+            m_greenDuty = 40000*m_flash2Hz;
             m_redDuty = 50000*m_flash2Hz;
             break;
         case asState::AS_FINISHED:

@@ -70,6 +70,8 @@ class StateMachine {
     void setTorqueReqLeft(int16_t torque);
     void setTorqueReqRight(int16_t torque);
     bool getInitialised();
+    cluon::data::TimeStamp m_lastUpdateAnalog;
+    cluon::data::TimeStamp m_lastUpdateGpio;
 
    private:
     void stateMachine();
@@ -132,6 +134,9 @@ class StateMachine {
     int16_t m_torqueReqRight;
     int16_t m_torqueReqLeftCan;
     int16_t m_torqueReqRightCan;
+    uint8_t m_rtd;
+    bool m_modulesRunning;
+
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

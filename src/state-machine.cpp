@@ -64,18 +64,22 @@ int32_t main(int32_t argc, char **argv) {
 
                 if (channel == stateMachine.getAnalogPinEbsActuator()){
                     stateMachine.setPressureEbsAct(analogInput.pressure());
+                    stateMachine.m_lastUpdateAnalog = cluon::time::now();
                     if(VERBOSE)
                         std::cout << "[LOGIC-ASS-PRESSURE-EBS-ACT] Pressure reading:" << analogInput.pressure() << std::endl;
                 }else if (channel == stateMachine.getAnalogPinEbsLine()){
                     stateMachine.setPressureEbsLine(analogInput.pressure());
+                    stateMachine.m_lastUpdateAnalog = cluon::time::now();
                     if(VERBOSE)
                         std::cout << "[LOGIC-ASS-PRESSURE-EBS-LINE] Pressure reading:" << analogInput.pressure() << std::endl;
                 }else if (channel == stateMachine.getAnalogPinServiceTank()){
                     stateMachine.setPressureServiceTank(analogInput.pressure());
+                    stateMachine.m_lastUpdateAnalog = cluon::time::now();
                     if(VERBOSE)
                         std::cout << "[LOGIC-ASS-PRESSURE-SERVICE-TANK] Pressure reading:" << analogInput.pressure() << std::endl;
                 }else if (channel == stateMachine.getAnalogPinPressureReg()){
                     stateMachine.setPressureServiceReg(analogInput.pressure());
+                    stateMachine.m_lastUpdateAnalog = cluon::time::now();
                     if(VERBOSE)
                         std::cout << "[LOGIC-ASS-PRESSURE-SERVICE-REGULATOR] Pressure reading:" << analogInput.pressure() << std::endl;
                 }
@@ -91,12 +95,15 @@ int32_t main(int32_t argc, char **argv) {
                 if (pin == stateMachine.getGpioPinEbsOk()){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
                     stateMachine.setEbsOk(gpioState.state());
+                    stateMachine.m_lastUpdateGpio = cluon::time::now();
                 }else if (pin == stateMachine.getGpioPinAsms()){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
                     stateMachine.setAsms(gpioState.state());
+                    stateMachine.m_lastUpdateGpio = cluon::time::now();
                 }else if (pin == stateMachine.getGpioPinClampSensor()){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
                     stateMachine.setClampExtended(gpioState.state());
+                    stateMachine.m_lastUpdateGpio = cluon::time::now();
                 }
             }};
             od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReadingGpio);
@@ -143,32 +150,6 @@ int32_t main(int32_t argc, char **argv) {
             }
         }};
         od4.dataTrigger(opendlv::proxy::TorqueRequest::ID(), onTorqueRequest);
-
-
-
-            auto heartbeatThread{[&stateMachine, &od4Gpio2]()
-            {
-                if (!stateMachine.getInitialised()){
-                    return;
-                }
-                using namespace std::literals::chrono_literals;
-                bool heatbeat = 0;
-                int16_t senderStamp = stateMachine.getSenderStampOffsetGpio() + 27;
-                std::chrono::system_clock::time_point threadTime = std::chrono::system_clock::now();
-                opendlv::proxy::SwitchStateRequest msgGpio;
-
-                while (true) {
-                    heatbeat = !heatbeat;
-                    std::this_thread::sleep_until(std::chrono::duration<double>(0.033)+threadTime);
-                    threadTime = std::chrono::system_clock::now();
-                    cluon::data::TimeStamp sampleTime = cluon::time::convert(threadTime);
-                    msgGpio.state(heatbeat);
-                    od4Gpio2.send(msgGpio, sampleTime, senderStamp);
-                }
-
-            }};
-            std::thread hbThread(heartbeatThread);
-
 
 
         using namespace std::literals::chrono_literals;
