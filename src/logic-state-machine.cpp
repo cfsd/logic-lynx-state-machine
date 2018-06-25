@@ -93,6 +93,10 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_torqueReqRightCan()
     , m_rtd()
     , m_modulesRunning()
+    , m_ebsFault()
+    , m_steerPosition()
+    , m_steerPositionRack()
+    , m_steerFault()
 
 {
     m_currentState = asState::AS_OFF;
@@ -136,7 +140,26 @@ void StateMachine::body()
 
     m_serviceBrakeOk = m_pressureServiceTank >= 6;
     m_ebsPressureOk = m_pressureEbsLine >= 6;
-    
+    bool serviceBrakeLow = m_pressureServiceTank <= 4;
+    bool systemReadyOrDriving = (m_currentState == asState::AS_DRIVING || m_currentState == asState::AS_READY);
+    bool sensorDisconnected = (m_pressureEbsAct > 11 || m_pressureEbsLine > 11 || m_pressureServiceTank > 11);
+    bool ebsPressureFail = (!m_ebsPressureOk && systemReadyOrDriving);
+    if (sensorDisconnected || ebsPressureFail || serviceBrakeLow){
+        m_ebsFault = true;
+        std::cout << "[ASS-ERROR] EBS Failure: sensorDisconnected: " << sensorDisconnected << " ebsPressureFail: " << ebsPressureFail << " serviceBrakeLow: " << serviceBrakeLow << std::endl;        
+    }else{
+        m_ebsFault = false;
+    }
+    bool steeringDiffLarge = (m_steerPosition-m_steerPositionRack) > 5 || (m_steerPosition-m_steerPositionRack) < -5;
+    if (systemReadyOrDriving && (!m_clampExtended || steeringDiffLarge)){
+        m_steerFault = true;
+         std::cout << "[ASS-ERROR] Steering Failure: m_clampExtended: " << m_clampExtended << " steeringDiffLarge: " << steeringDiffLarge << std::endl;        
+
+    }else{
+        m_steerFault = false;
+    }
+
+
     // Sending std messages
     cluon::data::TimeStamp sampleTime = cluon::time::now();
     int16_t senderStamp = 0;
@@ -229,12 +252,17 @@ void StateMachine::body()
 
     //Send Current state of state machine
     opendlv::proxy::SwitchStateReading msgGpioRead;
+
     senderStamp = m_senderStampCurrentState;
     msgGpioRead.state((uint16_t) m_currentState);
     m_od4.send(msgGpioRead, sampleTime, senderStamp);
 
-    senderStamp = 1404;
+    senderStamp = m_senderStampRTD;
     msgGpioRead.state((uint16_t) m_rtd);
+    m_od4.send(msgGpioRead, sampleTime, senderStamp);
+
+    senderStamp = m_senderStampEBSFault;
+    msgGpioRead.state((uint16_t) m_ebsFault);
     m_od4.send(msgGpioRead, sampleTime, senderStamp);
 
     opendlv::proxy::TorqueRequest msgTorqueReq;
@@ -266,7 +294,7 @@ void StateMachine::stateMachine(){
     m_torqueReqLeftCan = 0;
     m_torqueReqRightCan = 0;
     m_rtd = 0;
-    if((!m_ebsOk || !m_modulesRunning) && m_currentState != asState::EBS_TRIGGERED && m_currentState != asState::AS_OFF){
+    if((!m_ebsOk || !m_modulesRunning || m_ebsFault || m_steerFault) && m_currentState != asState::EBS_TRIGGERED && m_currentState != asState::AS_OFF){
         m_ebsTriggeredTime = timeMillis;
         m_prevState = m_currentState;
         m_currentState = asState::EBS_TRIGGERED;
@@ -320,10 +348,10 @@ void StateMachine::stateMachine(){
         case asState::EBS_TRIGGERED:
             m_brakeDuty = 50000;
             m_ebsRelief = 0;
-            m_ebsSpeaker = ((m_ebsTriggeredTime+5000) >= timeMillis);
+            m_ebsSpeaker = ((m_ebsTriggeredTime+15000) >= timeMillis);
             m_finished = 0;
             m_shutdown = 1;
-            if(!m_asms && (((m_ebsTriggeredTime+5000) <= timeMillis) || (m_prevState != asState::AS_DRIVING))/*&& spd = 0*/){
+            if(!m_asms && (((m_ebsTriggeredTime+15000) <= timeMillis) || (m_prevState != asState::AS_DRIVING))/*&& spd = 0*/){
                 m_prevState = asState::EBS_TRIGGERED;
                 m_currentState = asState::AS_OFF;
             }
@@ -480,6 +508,13 @@ void StateMachine::setTorqueReqLeft(int16_t torque){
 }
 void StateMachine::setTorqueReqRight(int16_t torque){
     m_torqueReqRight = torque;
+}
+
+void StateMachine::setSteerPositionRack(float pos){
+    m_steerPositionRack = pos;
+}
+void StateMachine::setSteerPosition(float pos){
+    m_steerPosition = pos;
 }
 
 bool StateMachine::getInitialised(){

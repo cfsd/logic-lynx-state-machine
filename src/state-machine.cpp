@@ -108,6 +108,25 @@ int32_t main(int32_t argc, char **argv) {
             }};
             od4Gpio.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReadingGpio);
 
+        auto onGroundSteeringReading{[&stateMachine, &VERBOSE](cluon::data::Envelope &&envelope)
+            {
+                if (!stateMachine.getInitialised()){
+                    return;
+                }
+                opendlv::proxy::GroundSteeringReading analogInput = cluon::extractMessage<opendlv::proxy::GroundSteeringReading>(std::move(envelope));
+                if (envelope.senderStamp() == 1200){
+                stateMachine.setSteerPosition(analogInput.groundSteering());
+                   if (VERBOSE)
+                        std::cout << "[LOGIC-STEERING-POSITION-ACT] Position reading:" << analogInput.groundSteering() << std::endl;
+
+                }else if (envelope.senderStamp() == 1206){
+                stateMachine.setSteerPositionRack(analogInput.groundSteering());
+                    if (VERBOSE)
+                        std::cout << "[LOGIC-STEERING-POSITION-RACK] Position reading:" << analogInput.groundSteering() << std::endl;
+                }
+            }};
+            od4Analog.dataTrigger(opendlv::proxy::GroundSteeringReading::ID(), onGroundSteeringReading);
+
         auto onSwitchStateReading{[&stateMachine](cluon::data::Envelope &&envelope)
             {
                 if (!stateMachine.getInitialised()){

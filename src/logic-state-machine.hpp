@@ -69,6 +69,8 @@ class StateMachine {
     void setDutyCycleBrake(uint32_t duty);
     void setTorqueReqLeft(int16_t torque);
     void setTorqueReqRight(int16_t torque);
+    void setSteerPositionRack(float pos);
+    void setSteerPosition(float pos);
     bool getInitialised();
     cluon::data::TimeStamp m_lastUpdateAnalog;
     cluon::data::TimeStamp m_lastUpdateGpio;
@@ -136,6 +138,10 @@ class StateMachine {
     int16_t m_torqueReqRightCan;
     uint8_t m_rtd;
     bool m_modulesRunning;
+    bool m_ebsFault;
+    float m_steerPosition;
+    float m_steerPositionRack;
+    bool m_steerFault;
 
 
     const uint16_t m_gpioPinAsms = 115;
@@ -159,9 +165,12 @@ class StateMachine {
     const uint16_t m_analogPinServiceTank = 2;
     const uint16_t m_analogPinEbsActuator = 3;
     const uint16_t m_analogPinPressureReg = 5;
+    const uint16_t m_analogPinSteerPosition = 0;
+    const uint16_t m_analogPinSteerPositionRack = 6;
 
     const uint32_t m_senderStampCurrentState = 1401;
     const uint32_t m_senderStampRTD = 1404;
+    const uint32_t m_senderStampEBSFault = 1405;
 
 };
 
