@@ -134,7 +134,7 @@ void StateMachine::body()
 
     if (m_pressureEbsLine < 5 || m_pressureServiceTank < 6){
         m_compressor = 1;
-    }else if ((m_pressureEbsLine > 6 && m_pressureServiceTank > 8) || m_pressureServiceTank > 9){
+    }else if ((m_pressureEbsLine > 6 && m_pressureServiceTank > 8) || m_pressureServiceTank > 9 || m_pressureServiceTank < 0){
         m_compressor = 0;
     }
 
@@ -142,7 +142,7 @@ void StateMachine::body()
     m_ebsPressureOk = m_pressureEbsLine >= 6;
     bool serviceBrakeLow = m_pressureServiceTank <= 4;
     bool systemReadyOrDriving = (m_currentState == asState::AS_DRIVING || m_currentState == asState::AS_READY);
-    bool sensorDisconnected = (m_pressureEbsAct > 11 || m_pressureEbsLine > 11 || m_pressureServiceTank > 11);
+    bool sensorDisconnected = (m_pressureEbsAct < 0 || m_pressureEbsLine < 0 || m_pressureServiceTank < 0);
     bool ebsPressureFail = (!m_ebsPressureOk && systemReadyOrDriving);
     if (sensorDisconnected || ebsPressureFail || serviceBrakeLow){
         m_ebsFault = true;
