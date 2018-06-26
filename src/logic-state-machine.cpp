@@ -132,10 +132,10 @@ void StateMachine::body()
     m_heartbeat = !m_heartbeat;
     m_serviceBrake = 1;
 
-    if (m_pressureEbsLine < 5 || m_pressureServiceTank < 6){
-        m_compressor = 1;
-    }else if ((m_pressureEbsLine > 6 && m_pressureServiceTank > 8) || m_pressureServiceTank > 9 || m_pressureServiceTank < 0){
+    if ((m_pressureEbsLine > 6 && m_pressureServiceTank > 8) || m_pressureServiceTank > 9 || m_pressureServiceTank < -0.05){
         m_compressor = 0;
+    }else if (m_pressureEbsLine < 5 || m_pressureServiceTank < 6){
+        m_compressor = 1;
     }
 
     m_serviceBrakeOk = m_pressureServiceTank >= 6;
