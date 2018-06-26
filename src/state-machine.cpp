@@ -35,7 +35,7 @@ int32_t main(int32_t argc, char **argv) {
     if ((0 == commandlineArguments.count("freq")) || (0 == commandlineArguments.count("cid"))) {
         std::cerr << argv[0] << "Module running state-machine for Lynx" << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --cid=<OpenDaVINCI session> [--id=<Identifier in case of multiple beaglebone units>] [--verbose]" << std::endl;
-        std::cerr << "Example: " << argv[0] << " --cid=219 --cidgpio=220 --cidanalog=221 --cidpwm=222 --id=1 --verbose=1 --freq=30" << std::endl;
+        std::cerr << "Example: " << argv[0] << " --cid=219 --cidgpio=220 --cidanalog=221 --cidpwm=222 --cidgen=48 --id=1 --verbose=1 --freq=30" << std::endl;
         retCode = 1;
     } else {
         const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
@@ -51,8 +51,9 @@ int32_t main(int32_t argc, char **argv) {
         cluon::OD4Session od4Gpio2{static_cast<uint16_t>(std::stoi(commandlineArguments["cidgpio"]))};
         cluon::OD4Session od4Analog{static_cast<uint16_t>(std::stoi(commandlineArguments["cidanalog"]))};
         cluon::OD4Session od4Pwm{static_cast<uint16_t>(std::stoi(commandlineArguments["cidpwm"]))};
+        cluon::OD4Session od4Gen{static_cast<uint16_t>(std::stoi(commandlineArguments["cidgen"]))};
 
-        StateMachine stateMachine(VERBOSE, ID, od4, od4Gpio, od4Analog, od4Pwm);
+        StateMachine stateMachine(VERBOSE, ID, od4, od4Gpio, od4Analog, od4Pwm, od4Gen);
 
         auto onPressureReading{[&stateMachine, &VERBOSE](cluon::data::Envelope &&envelope)
             {

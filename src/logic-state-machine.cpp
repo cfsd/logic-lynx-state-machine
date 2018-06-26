@@ -34,13 +34,14 @@ float StateMachine::decode(const std::string &data) noexcept {
     return temp;
 }
 
-StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm)
+StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm, cluon::OD4Session &od4Gen)
     : m_lastUpdateAnalog()
     , m_lastUpdateGpio()
     , m_od4(od4)
     , m_od4Gpio(od4Gpio)
     , m_od4Analog(od4Analog)
     , m_od4Pwm(od4Pwm)
+    , m_od4Gen(od4Gen)
     , m_debug(verbose)
     , m_bbbId(id)
     , m_senderStampOffsetGpio(id*1000)
@@ -257,6 +258,7 @@ void StateMachine::body()
     senderStamp = m_senderStampCurrentState;
     msgGpioRead.state((uint16_t) m_currentState);
     m_od4.send(msgGpioRead, sampleTime, senderStamp);
+    m_od4Gen.send(msgGpioRead, sampleTime, senderStamp);
 
     senderStamp = m_senderStampRTD;
     msgGpioRead.state((uint16_t) m_rtd);

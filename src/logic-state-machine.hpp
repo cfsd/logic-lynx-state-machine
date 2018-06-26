@@ -42,7 +42,7 @@ class StateMachine {
     //StateMachine &operator=(StateMachine &&) = delete;
 
    public:
-    StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm);
+    StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm, cluon::OD4Session &od4Gen);
     ~StateMachine();
 
    public:
@@ -86,6 +86,7 @@ class StateMachine {
     cluon::OD4Session &m_od4Gpio;
     cluon::OD4Session &m_od4Analog;
     cluon::OD4Session &m_od4Pwm;
+    cluon::OD4Session &m_od4Gen;
     bool m_debug;
     uint32_t m_bbbId;
     uint32_t m_senderStampOffsetGpio;
