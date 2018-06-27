@@ -152,7 +152,7 @@ void StateMachine::body()
     }else{
         m_ebsFault = false;
     }
-    bool steeringDiffLarge = (m_steerPosition-m_steerPositionRack) > 5 || (m_steerPosition-m_steerPositionRack) < -5;
+    bool steeringDiffLarge = (m_steerPosition-m_steerPositionRack) > 10 || (m_steerPosition-m_steerPositionRack) < -10;
     if (systemReadyOrDriving && (!m_clampExtended || steeringDiffLarge)){
         m_steerFault = true;
          std::cout << "[ASS-ERROR] Steering Failure: m_clampExtended: " << m_clampExtended << " steeringDiffLarge: " << steeringDiffLarge << std::endl;        
