@@ -26,7 +26,8 @@
 #include <string>
 #include <ctime>
 #include <chrono>
-//#include <stdlib.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 float StateMachine::decode(const std::string &data) noexcept {
     std::cout << "[UDP] Got data:" << data << std::endl;
@@ -98,6 +99,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_steerPosition()
     , m_steerPositionRack()
     , m_steerFault()
+    , m_firstCycleAsOff(1)
 
 {
     m_currentState = asState::AS_OFF;
@@ -310,9 +312,15 @@ void StateMachine::stateMachine(){
     switch(m_currentState){
         case asState::AS_OFF:
             m_brakeDuty = 20000;
+            if (m_firstCycleAsOff){
+                m_firstCycleAsOff = false;
+                std::cout << "Docker-compose down return code: " << system("sshpass -p cfsd ssh cfsd@0.0.0.0 \"sh /home/cfsd/script/state-down.sh\"") << std::endl; // Docker compose down. 
+            }
 	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
+                m_firstCycleAsOff = true;
+                std::cout << "Docker-compose up return code: " << system("sshpass -p cfsd ssh cfsd@0.0.0.0 \"sh /home/cfsd/script/state-up.sh\"") << std::endl;  // Docker compose up. 
             }
             break;
         case asState::AS_READY:
@@ -399,21 +407,21 @@ bool StateMachine::setAssi(asState assi){
         break;
         case asState::AS_READY:
             m_blueDuty = 0;
-            m_greenDuty = 40000;
-            m_redDuty = 50000;
+            m_greenDuty = 8000000;
+            m_redDuty = 10000000;
             break;
         case asState::AS_DRIVING:
             m_blueDuty = 0;
-            m_greenDuty = 40000*m_flash2Hz;
-            m_redDuty = 50000*m_flash2Hz;
+            m_greenDuty = 8000000*m_flash2Hz;
+            m_redDuty = 10000000*m_flash2Hz;
             break;
         case asState::AS_FINISHED:
-            m_blueDuty = 50000;
+            m_blueDuty = 10000000;
             m_greenDuty = 0;
             m_redDuty = 0;
             break;
         case asState::EBS_TRIGGERED:
-            m_blueDuty = 50000*m_flash2Hz;
+            m_blueDuty = 10000000*m_flash2Hz;
             m_greenDuty = 0;
             m_redDuty = 0;
             break;
