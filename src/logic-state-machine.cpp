@@ -314,13 +314,13 @@ void StateMachine::stateMachine(){
             m_brakeDuty = 20000;
             if (m_firstCycleAsOff){
                 m_firstCycleAsOff = false;
-                std::cout << "Docker-compose down return code: " << system("sshpass -p cfsd ssh cfsd@10.42.2.11 \"sh /home/cfsd/script/state-down.sh\"") << std::endl; // Docker compose down. 
+                std::cout << "Docker-compose down return code: " << system("sshpass -p cfsd ssh cfsd@127.0.0.1 \"sh /home/cfsd/script/state-down.sh\"") << std::endl; // Docker compose down. 
             }
 	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
                 m_firstCycleAsOff = true;
-                std::cout << "Docker-compose up return code: " << system("sshpass -p cfsd ssh cfsd@10.42.2.11 \"sh /home/cfsd/script/state-up.sh\"") << std::endl;  // Docker compose up. 
+                std::cout << "Docker-compose up return code: " << system("sshpass -p cfsd ssh cfsd@127.0.0.1 \"sh /home/cfsd/script/state-up.sh\"") << std::endl;  // Docker compose up. 
             }
             break;
         case asState::AS_READY:
