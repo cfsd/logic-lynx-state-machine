@@ -100,6 +100,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_steerPositionRack()
     , m_steerFault()
     , m_firstCycleAsOff(1)
+    , m_refreshMsg(1)
 
 {
     m_currentState = asState::AS_OFF;
@@ -182,7 +183,7 @@ void StateMachine::body()
         std::cout << "[ASS-Machine] Current outputs: m_finished: " << m_finished << "\t m_shutdown: " << m_shutdown << std::endl;
     }
     // m_ebsSpeaker Msg
-    if(m_ebsSpeaker != m_ebsSpeakerOld){
+    if(m_ebsSpeaker != m_ebsSpeakerOld || m_refreshMsg){
         senderStamp = m_gpioPinEbsSpeaker + m_senderStampOffsetGpio;
         msgGpio.state(m_ebsSpeaker);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
@@ -190,7 +191,7 @@ void StateMachine::body()
     }
 
     // m_compressor Msg
-    if(m_compressor != m_compressorOld){
+    if(m_compressor != m_compressorOld || m_refreshMsg){
         senderStamp = m_gpioPinCompressor + m_senderStampOffsetGpio;
         msgGpio.state(m_compressor);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
@@ -198,14 +199,14 @@ void StateMachine::body()
     }
 
     // m_ebsRelief Msg
-    if(m_ebsRelief != m_ebsReliefOld){
+    if(m_ebsRelief != m_ebsReliefOld || m_refreshMsg){
         senderStamp = m_gpioPinEbsRelief + m_senderStampOffsetGpio;
         msgGpio.state(m_ebsRelief);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
         m_ebsReliefOld = m_ebsRelief;
     }
     // m_finished Msg
-    if(m_finished != m_finishedOld){
+    if(m_finished != m_finishedOld || m_refreshMsg){
         senderStamp = m_gpioPinFinished + m_senderStampOffsetGpio;
         msgGpio.state(m_finished);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
@@ -213,7 +214,7 @@ void StateMachine::body()
     }
 
     // m_shutdown Msg
-    if(m_shutdown != m_shutdownOld){
+    if(m_shutdown != m_shutdownOld || m_refreshMsg){
         senderStamp = m_gpioPinShutdown + m_senderStampOffsetGpio;
         msgGpio.state(m_shutdown);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
@@ -221,7 +222,7 @@ void StateMachine::body()
     }
 
     // m_serviceBrake
-    if(m_serviceBrake != m_serviceBrakeOld){
+    if(m_serviceBrake != m_serviceBrakeOld || m_refreshMsg){
         senderStamp = m_gpioPinServiceBrake + m_senderStampOffsetGpio;
         msgGpio.state(m_serviceBrake);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
@@ -231,25 +232,25 @@ void StateMachine::body()
     // Send pwm Requests
     opendlv::proxy::PulseWidthModulationRequest msgPwm;
  
-    if (m_redDuty != m_redDutyOld){
+    if (m_redDuty != m_redDutyOld || m_refreshMsg){
         senderStamp = m_pwmPinAssiRed + m_senderStampOffsetPwm;
         msgPwm.dutyCycleNs(m_redDuty);
         m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
         m_redDutyOld = m_redDuty;
     }
-    if (m_greenDuty != m_greenDutyOld){
+    if (m_greenDuty != m_greenDutyOld || m_refreshMsg){
         senderStamp = m_pwmPinAssiGreen + m_senderStampOffsetPwm;
         msgPwm.dutyCycleNs(m_greenDuty);
         m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
         m_greenDutyOld = m_greenDuty;
     }
-    if (m_blueDuty != m_blueDutyOld){
+    if (m_blueDuty != m_blueDutyOld || m_refreshMsg){
         senderStamp = m_pwmPinAssiBlue + m_senderStampOffsetPwm;
         msgPwm.dutyCycleNs(m_blueDuty);
         m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
         m_blueDutyOld = m_blueDuty;
     }
-    if (m_brakeDuty != m_brakeDutyOld){
+    if (m_brakeDuty != m_brakeDutyOld || m_refreshMsg){
         senderStamp = m_pwmPinBrake + m_senderStampOffsetPwm;
         msgPwm.dutyCycleNs(m_brakeDuty);
         m_od4Pwm.send(msgPwm, sampleTime, senderStamp);
@@ -281,6 +282,8 @@ void StateMachine::body()
     senderStamp = 1501;
     msgTorqueReq.torque(m_torqueReqRightCan);
     m_od4.send(msgTorqueReq, sampleTime, senderStamp);
+
+    m_refreshMsg = m_flash2Hz;
 }
 
 void StateMachine::stateMachine(){

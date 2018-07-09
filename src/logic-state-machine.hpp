@@ -144,7 +144,7 @@ class StateMachine {
     float m_steerPositionRack;
     bool m_steerFault;
     bool m_firstCycleAsOff;
-
+    bool m_refreshMsg;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;
