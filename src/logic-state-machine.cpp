@@ -317,13 +317,13 @@ void StateMachine::stateMachine(){
                 //std::cout << "SSH 127.0.0.1: " << system("ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1") << std::endl; // Docker compose down.
                 //std::cout << "SSH 10.42.2.11: " << system("ssh -o StrictHostKeyChecking=no cfsd@10.42.2.11") << std::endl; // Docker compose down.
                 //std::cout << "SSH 0.0.0.0: " << system("ssh -o StrictHostKeyChecking=no cfsd@0.0.0.0") << std::endl; // Docker compose down.
-                std::cout << "Docker-compose down return code: " << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/state-down.sh\"") << std::endl; // Docker compose down. 
+                std::cout << "Docker-compose down return code: " << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/state-down.sh\" &") << std::endl; // Docker compose down. 
             }
 	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
                 m_firstCycleAsOff = true;
-                std::cout << "Docker-compose up return code: " << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/state-up.sh\"") << std::endl;  // Docker compose up. 
+                std::cout << "Docker-compose up return code: " << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/state-up.sh\" &") << std::endl;  // Docker compose up. 
             }
             break;
         case asState::AS_READY:
