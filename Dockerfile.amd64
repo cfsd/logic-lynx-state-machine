@@ -36,7 +36,10 @@ RUN rm -rf build && \
 # Part to deploy beaglebone.
 FROM alpine:3.7
 MAINTAINER Dan Andersson "andedan@student.chalmers.se"
-
+RUN apk update && \
+    apk --no-cache add \
+    openssh \
+    sshpass
 WORKDIR /usr/bin
 COPY --from=builder /tmp/state-machine-dest/bin/state-machine .
 CMD ["/usr/bin/state-machine"]
