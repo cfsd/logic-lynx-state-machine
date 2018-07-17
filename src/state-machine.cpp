@@ -134,12 +134,12 @@ int32_t main(int32_t argc, char **argv) {
                     return;
                 }
                 uint16_t pin = envelope.senderStamp();
-                if (pin == 1402){
+                if (pin == 1403){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
-                    stateMachine.setGoSignal(gpioState.state());
+                    stateMachine.setFinishSignal(gpioState.state());
                 }else if (pin == 1410){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
-                    stateMachine.setFinishSignal(gpioState.state()&0x04);
+                    stateMachine.setGoSignal(((uint8_t) gpioState.state()&0x04));
                 }else if (pin == 1406){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
                     stateMachine.setMission(gpioState.state());
