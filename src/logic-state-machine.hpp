@@ -66,6 +66,7 @@ class StateMachine {
     void setClampExtended(bool state);
     void setFinishSignal(bool state);
     void setGoSignal(bool state);
+    void setMission(bool state);
     void setDutyCycleBrake(uint32_t duty);
     void setTorqueReqLeft(int16_t torque);
     void setTorqueReqRight(int16_t torque);
@@ -145,6 +146,7 @@ class StateMachine {
     bool m_steerFault;
     bool m_firstCycleAsOff;
     bool m_refreshMsg;
+    bool m_mission;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

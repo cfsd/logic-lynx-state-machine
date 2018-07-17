@@ -137,9 +137,12 @@ int32_t main(int32_t argc, char **argv) {
                 if (pin == 1402){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
                     stateMachine.setGoSignal(gpioState.state());
-                }else if (pin == 1403){
+                }else if (pin == 1410){
                     opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
-                    stateMachine.setFinishSignal(gpioState.state());
+                    stateMachine.setFinishSignal(gpioState.state()&0x04);
+                }else if (pin == 1406){
+                    opendlv::proxy::SwitchStateReading gpioState = cluon::extractMessage<opendlv::proxy::SwitchStateReading>(std::move(envelope));
+                    stateMachine.setMission(gpioState.state());
                 }
             }};
             od4.dataTrigger(opendlv::proxy::SwitchStateReading::ID(), onSwitchStateReading);

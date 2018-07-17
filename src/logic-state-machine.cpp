@@ -101,6 +101,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_steerFault()
     , m_firstCycleAsOff(1)
     , m_refreshMsg(1)
+    , m_mission()
 
 {
     m_currentState = asState::AS_OFF;
@@ -518,6 +519,9 @@ void StateMachine::setFinishSignal(bool state){
 }
 void StateMachine::setGoSignal(bool state){
     m_goSignal = state;
+}
+void StateMachine::setMission(bool state){
+    m_mission = state;
 }
 void StateMachine::setDutyCycleBrake(uint32_t duty){
     m_brakeDutyRequest = duty;
