@@ -313,21 +313,20 @@ void StateMachine::stateMachine(){
         
     }
 
+    if (m_firstCycleAsOff && !m_asms){
+        m_firstCycleAsOff = false;
+        stopDocker(); 
+    }else if(!m_firstCycleAsOff && m_asms){
+        m_firstCycleAsOff = true;
+        runDocker();
+    }
+
     switch(m_currentState){
         case asState::AS_OFF:
             m_brakeDuty = 20000;
-            if (m_firstCycleAsOff){
-                m_firstCycleAsOff = false;
-                //std::cout << "SSH 127.0.0.1: " << system("ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1") << std::endl; // Docker compose down.
-                //std::cout << "SSH 10.42.2.11: " << system("ssh -o StrictHostKeyChecking=no cfsd@10.42.2.11") << std::endl; // Docker compose down.
-                //std::cout << "SSH 0.0.0.0: " << system("ssh -o StrictHostKeyChecking=no cfsd@0.0.0.0") << std::endl; // Docker compose down.
-                std::cout << "Docker-compose down return code: " << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/state-down.sh\" &") << std::endl; // Docker compose down. 
-            }
 	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
-                m_firstCycleAsOff = true;
-                std::cout << "Docker-compose up return code: " << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/state-up.sh\" &") << std::endl;  // Docker compose up. 
             }
             break;
         case asState::AS_READY:
@@ -446,6 +445,94 @@ bool StateMachine::setAssi(asState assi){
     return 0;
 
 }
+void StateMachine::runDocker(){
+    switch(m_mission){
+        case asMission::AMI_NONE:
+            break;
+        case asMission::AMI_ACCELERATION:
+            std::cout << "Starting Acceleration mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/acceleration-up.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_SKIDPAD:
+            std::cout << "Starting Skid pad mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/skidpad-up.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_TRACKDRIVE:
+            std::cout << "Starting Trackdrive mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/trackdrive-up.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_BRAKETEST:
+            std::cout << "Starting Brake test mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/braketest-up.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_INSPECTION:
+            std::cout << "Starting Inspection mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/inspection-up.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_SAFETYCHECK:
+            std::cout << "Starting Safety check mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/safetycheck-up.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_TEST:
+            std::cout << "Starting Test mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/test-up.sh\" &") 
+                << std::endl;  // Docker compose up.         
+            break;
+        default:
+        break;
+    }
+}
+void StateMachine::stopDocker(){
+    switch(m_mission){
+        case asMission::AMI_NONE:
+            break;
+        case asMission::AMI_ACCELERATION:
+            std::cout << "Stopping Acceleration mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/acceleration-down.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_SKIDPAD:
+            std::cout << "Stopping Skid pad mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/skidpad-down.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_TRACKDRIVE:
+            std::cout << "Stopping Trackdrive mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/trackdrive-down.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_BRAKETEST:
+            std::cout << "Stopping Brake test mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/braketest-down.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_INSPECTION:
+            std::cout << "Stopping Inspection mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/inspection-down.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_SAFETYCHECK:
+            std::cout << "Stopping Safety check mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/safetycheck-down.sh\" &") 
+                << std::endl;  // Docker compose up.
+            break;
+        case asMission::AMI_TEST:
+            std::cout << "Stopping Test mission... " 
+                << system("sshpass -p cfsd ssh -o StrictHostKeyChecking=no cfsd@127.0.0.1 \"sh /home/cfsd/script/test-down.sh\" &") 
+                << std::endl;  // Docker compose up.         
+            break;
+        default:
+        break;
+    }
+}
+
+
 
 void StateMachine::setUp()
 {
@@ -520,8 +607,8 @@ void StateMachine::setFinishSignal(bool state){
 void StateMachine::setGoSignal(bool state){
     m_goSignal = state;
 }
-void StateMachine::setMission(bool state){
-    m_mission = state;
+void StateMachine::setMission(uint16_t state){
+    m_mission = (asMission) state;
 }
 void StateMachine::setDutyCycleBrake(uint32_t duty){
     m_brakeDutyRequest = duty;

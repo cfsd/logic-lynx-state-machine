@@ -33,13 +33,20 @@ enum asState {
     EBS_TRIGGERED
  };
 
+enum asMission {
+    AMI_NONE,
+    AMI_ACCELERATION, 
+    AMI_SKIDPAD, 
+    AMI_TRACKDRIVE, 
+    AMI_BRAKETEST,
+    AMI_INSPECTION,
+    AMI_SAFETYCHECK,
+    AMI_TEST
+ };
+
 
 class StateMachine {
    private:
-    //StateMachine(const StateMachine &) = delete;
-    //StateMachine(StateMachine &&)      = delete;
-    //StateMachine &operator=(const StateMachine &) = delete;
-    //StateMachine &operator=(StateMachine &&) = delete;
 
    public:
     StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cluon::OD4Session &od4Gpio, cluon::OD4Session &od4Analog, cluon::OD4Session &od4Pwm, cluon::OD4Session &od4Gen);
@@ -66,7 +73,7 @@ class StateMachine {
     void setClampExtended(bool state);
     void setFinishSignal(bool state);
     void setGoSignal(bool state);
-    void setMission(bool state);
+    void setMission(uint16_t state);
     void setDutyCycleBrake(uint32_t duty);
     void setTorqueReqLeft(int16_t torque);
     void setTorqueReqRight(int16_t torque);
@@ -79,6 +86,8 @@ class StateMachine {
    private:
     void stateMachine();
     bool setAssi(asState assi);
+    void stopDocker();
+    void runDocker();
     void setUp();
     void tearDown();
     
@@ -146,7 +155,7 @@ class StateMachine {
     bool m_steerFault;
     bool m_firstCycleAsOff;
     bool m_refreshMsg;
-    bool m_mission;
+    asMission m_mission;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;
