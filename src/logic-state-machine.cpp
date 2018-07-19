@@ -324,6 +324,8 @@ void StateMachine::stateMachine(){
     switch(m_currentState){
         case asState::AS_OFF:
             m_brakeDuty = 20000;
+            m_finishSignal = false;
+            m_goSignal = false;
 	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
