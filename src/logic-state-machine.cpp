@@ -58,13 +58,13 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_heartbeat()
     , m_ebsSpeaker()
     , m_compressor()
-    , m_ebsRelief()
+    , m_ebsTest()
     , m_finished()
     , m_shutdown()
     , m_serviceBrake()
     , m_ebsSpeakerOld()
     , m_compressorOld()
-    , m_ebsReliefOld()
+    , m_ebsTestOld()
     , m_finishedOld()
     , m_shutdownOld()
     , m_serviceBrakeOld()
@@ -199,12 +199,12 @@ void StateMachine::body()
         m_compressorOld = m_compressor;
     }
 
-    // m_ebsRelief Msg
-    if(m_ebsRelief != m_ebsReliefOld || m_refreshMsg){
+    // m_ebsTest Msg
+    if(m_ebsTest != m_ebsTestOld || m_refreshMsg){
         senderStamp = m_gpioPinEbsRelief + m_senderStampOffsetGpio;
-        msgGpio.state(m_ebsRelief);
+        msgGpio.state(m_ebsTest);
         m_od4Gpio.send(msgGpio, sampleTime, senderStamp);
-        m_ebsReliefOld = m_ebsRelief;
+        m_ebsTestOld = m_ebsTest;
     }
     // m_finished Msg
     if(m_finished != m_finishedOld || m_refreshMsg){
@@ -299,7 +299,7 @@ void StateMachine::stateMachine(){
     uint64_t timeMillis = value.count();
 
     m_ebsSpeaker = 0;
-    m_ebsRelief = !m_asms;
+    m_ebsTest = 1;
     m_finished = 0;
     m_shutdown = 0;
     m_torqueReqLeftCan = 0;
@@ -347,7 +347,6 @@ void StateMachine::stateMachine(){
             m_torqueReqRightCan = m_torqueReqRight;
             m_rtd = 1;
 
-            m_ebsRelief = 0;
             if (m_finishSignal /*&& Mission complete and spd = 0*/){
                 m_prevState = asState::AS_DRIVING;
                 m_currentState = asState::AS_FINISHED;
@@ -368,7 +367,6 @@ void StateMachine::stateMachine(){
             break;
         case asState::EBS_TRIGGERED:
             m_brakeDuty = 50000;
-            m_ebsRelief = 0;
             m_ebsSpeaker = ((m_ebsTriggeredTime+15000) >= timeMillis);
             m_finished = 0;
             m_shutdown = 1;
@@ -415,21 +413,21 @@ bool StateMachine::setAssi(asState assi){
         break;
         case asState::AS_READY:
             m_blueDuty = 0;
-            m_greenDuty = 8000000;
-            m_redDuty = 10000000;
+            m_greenDuty = 1000000000;
+            m_redDuty = 1000000000;
             break;
         case asState::AS_DRIVING:
             m_blueDuty = 0;
-            m_greenDuty = 8000000*m_flash2Hz;
-            m_redDuty = 10000000*m_flash2Hz;
+            m_greenDuty = 1000000000*m_flash2Hz;
+            m_redDuty = 1000000000*m_flash2Hz;
             break;
         case asState::AS_FINISHED:
-            m_blueDuty = 10000000;
+            m_blueDuty = 1000000000;
             m_greenDuty = 0;
             m_redDuty = 0;
             break;
         case asState::EBS_TRIGGERED:
-            m_blueDuty = 10000000*m_flash2Hz;
+            m_blueDuty = 1000000000*m_flash2Hz;
             m_greenDuty = 0;
             m_redDuty = 0;
             break;

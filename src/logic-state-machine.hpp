@@ -112,13 +112,13 @@ class StateMachine {
     bool m_heartbeat;
     bool m_ebsSpeaker;
     bool m_compressor;
-    bool m_ebsRelief;
+    bool m_ebsTest;
     bool m_finished;
     bool m_shutdown;
     bool m_serviceBrake;
     bool m_ebsSpeakerOld;
     bool m_compressorOld;
-    bool m_ebsReliefOld;
+    bool m_ebsTestOld;
     bool m_finishedOld;
     bool m_shutdownOld;
     bool m_serviceBrakeOld;
