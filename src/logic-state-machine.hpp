@@ -156,6 +156,7 @@ class StateMachine {
     bool m_firstCycleAsOff;
     bool m_refreshMsg;
     asMission m_mission;
+    uint64_t m_lastTransition;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

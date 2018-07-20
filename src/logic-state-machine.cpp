@@ -102,6 +102,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_firstCycleAsOff(1)
     , m_refreshMsg(1)
     , m_mission()
+    , m_lastTransition()
 
 {
     m_currentState = asState::AS_OFF;
@@ -329,6 +330,7 @@ void StateMachine::stateMachine(){
 	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
+                m_lastTransition = timeMillis;
             }
             break;
         case asState::AS_READY:
@@ -336,13 +338,15 @@ void StateMachine::stateMachine(){
             if (m_goSignal /*&& RES GO signal*/){
                 m_prevState = asState::AS_READY;
                 m_currentState = asState::AS_DRIVING;
+                m_lastTransition = timeMillis;
             }else if(!m_asms){
                 m_prevState = asState::AS_READY;
                 m_currentState = asState::AS_OFF;
+                m_lastTransition = timeMillis;
             }
             break;
         case asState::AS_DRIVING:
-            m_brakeDuty = m_brakeDutyRequest;
+            m_brakeDuty = ((m_lastTransition+500) >= timeMillis) ? 20000 : m_brakeDutyRequest;
             m_torqueReqLeftCan = m_torqueReqLeft;
             m_torqueReqRightCan = m_torqueReqRight;
             m_rtd = 1;
@@ -350,10 +354,12 @@ void StateMachine::stateMachine(){
             if (m_finishSignal /*&& Mission complete and spd = 0*/){
                 m_prevState = asState::AS_DRIVING;
                 m_currentState = asState::AS_FINISHED;
+                m_lastTransition = timeMillis;
             }else if(!m_asms){
                 m_ebsTriggeredTime = timeMillis;
                 m_prevState = asState::AS_DRIVING;
                 m_currentState = asState::EBS_TRIGGERED;
+                m_lastTransition = timeMillis;
             }
             break;
         case asState::AS_FINISHED:
@@ -363,6 +369,7 @@ void StateMachine::stateMachine(){
             if(!m_asms){
                 m_prevState = asState::AS_FINISHED;
                 m_currentState = asState::AS_OFF;
+                m_lastTransition = timeMillis;
             }
             break;
         case asState::EBS_TRIGGERED:
@@ -373,6 +380,7 @@ void StateMachine::stateMachine(){
             if(!m_asms && (((m_ebsTriggeredTime+15000) <= timeMillis) || (m_prevState != asState::AS_DRIVING))/*&& spd = 0*/){
                 m_prevState = asState::EBS_TRIGGERED;
                 m_currentState = asState::AS_OFF;
+                m_lastTransition = timeMillis;
             }
             break;
 
