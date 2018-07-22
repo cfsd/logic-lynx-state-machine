@@ -85,6 +85,7 @@ class StateMachine {
 
    private:
     void stateMachine();
+    void ebsInit();
     bool setAssi(asState assi);
     void stopDocker();
     void runDocker();
@@ -157,6 +158,11 @@ class StateMachine {
     bool m_refreshMsg;
     asMission m_mission;
     uint64_t m_lastTransition;
+    bool m_ebsInitialised;
+    int m_currentStateEbsInit;
+    int m_prevStateEbsInit;
+    bool m_ebsInitFail;
+    uint64_t m_lastTransitionEbsInit;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

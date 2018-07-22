@@ -58,7 +58,7 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_heartbeat()
     , m_ebsSpeaker()
     , m_compressor()
-    , m_ebsTest()
+    , m_ebsTest(1)
     , m_finished()
     , m_shutdown()
     , m_serviceBrake()
@@ -103,7 +103,11 @@ StateMachine::StateMachine(bool verbose, uint32_t id, cluon::OD4Session &od4, cl
     , m_refreshMsg(1)
     , m_mission()
     , m_lastTransition()
-
+    , m_ebsInitialised()
+    , m_currentStateEbsInit()
+    , m_prevStateEbsInit()
+    , m_ebsInitFail()
+    , m_lastTransitionEbsInit()
 {
     m_currentState = asState::AS_OFF;
 	StateMachine::setUp();
@@ -133,6 +137,9 @@ void StateMachine::body()
     if (m_debug){
         std::cout << "[ASS-Machine] Current inputs: m_asms: " << m_asms << "\t m_ebsOk: " << m_ebsOk << std::endl;
     }
+    if (!m_ebsInitialised){
+        ebsInit();
+    }
     stateMachine();
     setAssi(m_currentState);
     m_heartbeat = !m_heartbeat;
@@ -151,9 +158,12 @@ void StateMachine::body()
     if (ebsPressureFail){
         std::cout << "[ASS-EBS-ERROR] Ebs line pressure: " << m_pressureEbsLine << std::endl;
     }
-    if (sensorDisconnected || ebsPressureFail || serviceBrakeLow){
+    if (sensorDisconnected || ebsPressureFail || serviceBrakeLow || m_ebsInitFail){
         m_ebsFault = true;
-        std::cout << "[ASS-ERROR] EBS Failure: sensorDisconnected: " << sensorDisconnected << " ebsPressureFail: " << ebsPressureFail << " serviceBrakeLow: " << serviceBrakeLow << std::endl;        
+        std::cout << "[ASS-ERROR] EBS Failure: sensorDisconnected: " << sensorDisconnected 
+                << " ebsPressureFail: " << ebsPressureFail 
+                << " serviceBrakeLow: " << serviceBrakeLow 
+                << " m_ebsInitFail: " << m_ebsInitFail << std::endl;        
     }else{
         m_ebsFault = false;
     }
@@ -304,7 +314,7 @@ void StateMachine::stateMachine(){
     uint64_t timeMillis = value.count();
 
     m_ebsSpeaker = 0;
-    m_ebsTest = 1;
+    //m_ebsTest = 1;
     m_finished = 0;
     m_shutdown = 0;
     m_torqueReqLeftCan = 0;
@@ -338,7 +348,7 @@ void StateMachine::stateMachine(){
             m_brakeDuty = 20000;
             m_finishSignal = false;
             m_goSignal = false;
-	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk/*&& precharge done && Mission selected && computer ON*/){
+	    if (m_asms && m_serviceBrakeOk && m_ebsPressureOk && m_clampExtended && m_ebsOk && m_ebsInitialised && !m_compressor/*&& precharge done && Mission selected && computer ON*/){
                 m_prevState = asState::AS_OFF;
                 m_currentState = asState::AS_READY;
                 m_lastTransition = timeMillis;
@@ -401,6 +411,88 @@ void StateMachine::stateMachine(){
 
     if (m_debug){
         std::cout << "[ASS-Machine] Current state: " << m_currentState << std::endl;
+    }
+
+}
+
+void StateMachine::ebsInit(){
+
+     std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
+    auto tp_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(tp);
+    auto value = tp_ms.time_since_epoch();
+    uint64_t timeMillis = value.count();
+
+    switch(m_currentStateEbsInit){
+        case 10:
+	        if (!m_ebsOk){
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 20;
+                m_lastTransitionEbsInit = timeMillis;
+            }
+            break;
+        case 20:
+            if (m_ebsOk){
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 30;
+                m_lastTransitionEbsInit = timeMillis;
+            }
+            break;
+        case 30:
+            if (m_asms){
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 40;
+                m_lastTransitionEbsInit = timeMillis;
+            }
+            break;
+        case 40:
+            m_ebsTest = 0;
+            if(m_pressureEbsAct >= 5 && m_pressureEbsLine >= 5 && m_pressureServiceTank >= 6 && m_pressureServiceReg >= 3){
+                m_compressor = 1;
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 50;
+                m_lastTransitionEbsInit = timeMillis;
+            }else if(((m_lastTransitionEbsInit+5000) <= timeMillis) && (m_pressureEbsAct <= 0.5 || m_pressureServiceReg <= 0.5)){
+                m_ebsInitFail = 1;
+                std::cout << "[EBS-Init] Failed to increase pressure above 0.5bar in 5s." 
+                          << " m_pressureEbsAct: " << m_pressureEbsAct
+                          << " m_pressureServiceReg: " << m_pressureServiceReg << std::endl;
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 70;
+                m_lastTransitionEbsInit = timeMillis;
+            }else if(((m_lastTransitionEbsInit+60000) <= timeMillis)){
+                m_ebsInitFail = 1;
+                std::cout << "[EBS-Init] Failed to increase pressures 60s." << std::endl;
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 70;
+                m_lastTransitionEbsInit = timeMillis;
+            }
+            break;
+        case 50:
+            m_ebsTest = 1;
+            if(!m_compressor){
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 60;
+                m_lastTransitionEbsInit = timeMillis;
+            }
+            break;
+        case 60:
+            m_ebsInitialised = 1;
+            std::cout << "[EBS-Init] Initialisation done" << std::endl;
+            if(true){
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 70;
+                m_lastTransitionEbsInit = timeMillis;
+            }
+            break;
+        case 70:
+            // Do nothing
+            break;
+        default:
+            break;
+    }
+
+    if (m_debug){
+        std::cout << "[EBS-Init] Current EBS Init state: " << m_currentStateEbsInit << std::endl;
     }
 
 }
