@@ -147,6 +147,10 @@ void StateMachine::body()
     
     bool sensorDisconnected = (m_pressureEbsAct < -0.05 || m_pressureEbsLine < -0.05 || m_pressureServiceTank < -0.05);
     bool ebsPressureFail = (!m_ebsPressureOk && systemReadyOrDriving);
+
+    if (ebsPressureFail){
+        std::cout << "[ASS-EBS-ERROR] Ebs line pressure: " << m_pressureEbsLine << std::endl;
+    }
     if (sensorDisconnected || ebsPressureFail || serviceBrakeLow){
         m_ebsFault = true;
         std::cout << "[ASS-ERROR] EBS Failure: sensorDisconnected: " << sensorDisconnected << " ebsPressureFail: " << ebsPressureFail << " serviceBrakeLow: " << serviceBrakeLow << std::endl;        
@@ -310,8 +314,15 @@ void StateMachine::stateMachine(){
         m_ebsTriggeredTime = timeMillis;
         m_prevState = m_currentState;
         m_currentState = asState::EBS_TRIGGERED;
-        std::cout << "[ASS-Machine] Current state: " << m_currentState << std::endl;
-        
+        std::cout << "[ASS-Machine] Current state: " << m_currentState 
+                  << "Values: m_ebsOk: " << m_ebsOk 
+                  << " m_modulesRunning: " << m_modulesRunning 
+                  << " m_ebsFault: " << m_ebsFault 
+                  << " m_steerFault: " << m_steerFault 
+                  << " m_shutdown: " << m_shutdown
+                  << " m_finished: " << m_finished
+                  << " m_prevState: " << m_prevState
+                  << " m_ebsTest: " << m_ebsTest << std::endl; 
     }
 
     if (m_firstCycleAsOff && !m_asms){
