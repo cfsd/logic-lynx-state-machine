@@ -423,6 +423,11 @@ void StateMachine::ebsInit(){
     uint64_t timeMillis = value.count();
 
     switch(m_currentStateEbsInit){
+        case 0:
+                m_prevStateEbsInit = m_currentStateEbsInit;
+                m_currentStateEbsInit = 10;
+                m_lastTransitionEbsInit = timeMillis;
+
         case 10:
 	        if (!m_ebsOk){
                 m_prevStateEbsInit = m_currentStateEbsInit;
