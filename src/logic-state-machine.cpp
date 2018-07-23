@@ -132,6 +132,8 @@ void StateMachine::body()
     if(((threadTime-cluon::time::toMicroseconds(m_lastUpdateAnalog)) > 500000) || ((threadTime-cluon::time::toMicroseconds(m_lastUpdateGpio)) > 1000000)){
         m_modulesRunning = false;
         std::cout << "[ASS-ERROR] Module have crashed. Last gpio update:" << (threadTime-cluon::time::toMicroseconds(m_lastUpdateGpio)) << "\t Last analog update: " << (threadTime-cluon::time::toMicroseconds(m_lastUpdateAnalog)) << std::endl;
+    }else{
+        m_modulesRunning = true;
     }
 
     if (m_debug){
@@ -325,7 +327,7 @@ void StateMachine::stateMachine(){
         m_prevState = m_currentState;
         m_currentState = asState::EBS_TRIGGERED;
         std::cout << "[ASS-Machine] Current state: " << m_currentState 
-                  << "Values: m_ebsOk: " << m_ebsOk 
+                  << " Values: m_ebsOk: " << m_ebsOk 
                   << " m_modulesRunning: " << m_modulesRunning 
                   << " m_ebsFault: " << m_ebsFault 
                   << " m_steerFault: " << m_steerFault 
