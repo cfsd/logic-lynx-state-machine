@@ -154,7 +154,7 @@ void StateMachine::body()
     bool systemReadyOrDriving = (m_currentState == asState::AS_DRIVING || m_currentState == asState::AS_READY);
     bool serviceBrakeLow = (m_pressureServiceTank <= 4) && systemReadyOrDriving;
     
-    bool sensorDisconnected = (m_pressureEbsAct < -0.05 || m_pressureEbsLine < -0.05 || m_pressureServiceTank < -0.05);
+    bool sensorDisconnected = (m_pressureEbsAct < -0.08 || m_pressureEbsLine < -0.06 || m_pressureServiceTank < -0.07);
     bool ebsPressureFail = (!m_ebsPressureOk && systemReadyOrDriving);
 
     if (ebsPressureFail){
