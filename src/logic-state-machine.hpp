@@ -163,6 +163,11 @@ class StateMachine {
     int m_prevStateEbsInit;
     bool m_ebsInitFail;
     uint64_t m_lastTransitionEbsInit;
+    uint8_t m_ebsState = 1;
+    uint8_t m_steeringState = 0;
+    uint8_t m_serviceState = 1;
+    uint8_t m_brakeActual = 0;
+    uint8_t m_brakeTarget = 0;
 
     const uint16_t m_gpioPinAsms = 115;
     const uint16_t m_gpioPinEbsOk = 49;

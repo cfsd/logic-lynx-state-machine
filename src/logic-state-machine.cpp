@@ -146,6 +146,9 @@ void StateMachine::body()
     setAssi(m_currentState);
     m_heartbeat = !m_heartbeat;
     m_serviceBrake = 1;
+    m_steeringState = m_clampExtended;
+    m_brakeActual = (uint8_t) (m_asms * m_pressureServiceReg * 10);
+    m_brakeTarget = m_brakeDuty/500;
 
 
 
@@ -172,12 +175,12 @@ void StateMachine::body()
     bool steeringDiffLarge = (m_steerPosition-m_steerPositionRack) > 10 || (m_steerPosition-m_steerPositionRack) < -10;
     if (systemReadyOrDriving && (!m_clampExtended || steeringDiffLarge)){
         m_steerFault = true;
-         std::cout << "[ASS-ERROR] Steering Failure: m_clampExtended: " << m_clampExtended << " steeringDiffLarge: " << steeringDiffLarge << std::endl;        
+        std::cout << "[ASS-ERROR] Steering Failure: m_clampExtended: " << m_clampExtended << " steeringDiffLarge: " << steeringDiffLarge << std::endl;        
 
     }else{
         m_steerFault = false;
-    }
-
+        
+    };
 
     if ((m_pressureEbsLine > 6 && m_pressureServiceTank > 8) || m_pressureServiceTank > 9 || m_pressureServiceTank < -0.05 || m_currentState == asState::EBS_TRIGGERED){
         m_compressor = 0;
@@ -291,6 +294,18 @@ void StateMachine::body()
     msgGpioRead.state((uint16_t) m_ebsFault);
     m_od4.send(msgGpioRead, sampleTime, senderStamp);
 
+    senderStamp = 1413;
+    msgGpioRead.state((uint16_t) m_steeringState);
+    m_od4.send(msgGpioRead, sampleTime, senderStamp);
+
+    senderStamp = 1414;
+    msgGpioRead.state((uint16_t) m_ebsState);
+    m_od4.send(msgGpioRead, sampleTime, senderStamp);
+
+    senderStamp = 1415;
+    msgGpioRead.state((uint16_t) m_serviceState);
+    m_od4.send(msgGpioRead, sampleTime, senderStamp);
+
     opendlv::proxy::TorqueRequest msgTorqueReq;
 
     senderStamp = 1500;
@@ -300,6 +315,17 @@ void StateMachine::body()
     senderStamp = 1501;
     msgTorqueReq.torque(m_torqueReqRightCan);
     m_od4.send(msgTorqueReq, sampleTime, senderStamp);
+
+
+    opendlv::proxy::PressureReading pressureReadingMsg; 
+
+    senderStamp = 1509;
+    pressureReadingMsg.pressure(m_brakeTarget);
+    m_od4.send(pressureReadingMsg, sampleTime, senderStamp);
+
+    senderStamp = 1510;
+    pressureReadingMsg.pressure(m_brakeActual);
+    m_od4.send(pressureReadingMsg, sampleTime, senderStamp);
 
     m_refreshMsg = m_flash2Hz;
 }
@@ -347,6 +373,8 @@ void StateMachine::stateMachine(){
 
     switch(m_currentState){
         case asState::AS_OFF:
+            m_serviceState = 1;
+            m_ebsState = 1;
             m_brakeDuty = 20000;
             m_finishSignal = false;
             m_goSignal = false;
@@ -357,6 +385,8 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::AS_READY:
+            m_serviceState = 2;
+            m_ebsState = 2;
             m_brakeDuty = 20000;
             if (m_goSignal /*&& RES GO signal*/){
                 m_prevState = asState::AS_READY;
@@ -369,6 +399,8 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::AS_DRIVING:
+            m_serviceState = 3;
+            m_ebsState = 2;
             m_brakeDuty = ((m_lastTransition+500) >= timeMillis) ? 20000 : m_brakeDutyRequest;
             m_torqueReqLeftCan = m_torqueReqLeft;
             m_torqueReqRightCan = m_torqueReqRight;
@@ -386,6 +418,8 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::AS_FINISHED:
+            m_serviceState = 2;
+            m_ebsState = 2;
             m_brakeDuty = 20000;
             m_finished = 1;
             m_shutdown = 1;
@@ -396,6 +430,8 @@ void StateMachine::stateMachine(){
             }
             break;
         case asState::EBS_TRIGGERED:
+            m_serviceState = 2;
+            m_ebsState = 3;
             m_brakeDuty = 50000;
             m_ebsSpeaker = ((m_ebsTriggeredTime+15000) >= timeMillis);
             m_finished = 0;
