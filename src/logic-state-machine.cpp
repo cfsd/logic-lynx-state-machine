@@ -155,10 +155,11 @@ void StateMachine::body()
     m_serviceBrakeOk = m_pressureServiceTank >= 6;
     m_ebsPressureOk = m_pressureEbsLine >= 6;
     bool systemReadyOrDriving = (m_currentState == asState::AS_DRIVING || m_currentState == asState::AS_READY);
+    bool systemNotOff = (m_currentState != asState::AS_OFF);
     bool serviceBrakeLow = (m_pressureServiceTank <= 4) && systemReadyOrDriving;
     
     bool sensorDisconnected = (m_pressureEbsAct < -0.08 || m_pressureEbsLine < -0.06 || m_pressureServiceTank < -0.07);
-    bool ebsPressureFail = (!m_ebsPressureOk && systemReadyOrDriving);
+    bool ebsPressureFail = (!m_ebsPressureOk && systemNotOff);
 
     if (ebsPressureFail){
         std::cout << "[ASS-EBS-ERROR] Ebs line pressure: " << m_pressureEbsLine << std::endl;
